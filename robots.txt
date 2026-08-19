@@ -1,0 +1,10 @@
+# O bloqueio total foi retirado de propósito.
+# Com "Disallow: /", os servidores do Google não conseguem ler o
+# manifest.json nem os ícones — e é isso que faz o Android instalar
+# como atalho, com o desenho cinza, em vez de instalar como aplicativo.
+#
+# A página continua fora das buscas pela linha
+# <meta name="robots" content="noindex, nofollow, noarchive">
+# que está dentro do index.html.
+User-agent: *
+Allow: /

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Teste de leitura OCR — GCM</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#11224D">
+<style>
+  :root{--bg:#0B0E14;--surface:#141A23;--surface-2:#1B222D;--line:#2A3341;
+        --ink:#E8ECF2;--muted:#93A0B4;--faint:#5E6B7E;--ru:#FFC72C;--ok:#3FB27F;--warn:#E08A6B;--accent:#4C8DF6}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding-bottom:40px}
+  header{background:var(--surface);border-bottom:1px solid var(--line);padding:16px 14px}
+  h1{margin:0;font-size:16px;letter-spacing:.04em;text-transform:uppercase}
+  header p{margin:4px 0 0;font-size:12.5px;color:var(--muted)}
+  .wrap{max-width:760px;margin:0 auto;padding:14px}
+  section{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+          padding:14px;margin-bottom:14px}
+  h2{margin:0 0 10px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ru)}
+  input[type=file]{width:100%;background:var(--surface-2);border:1px solid var(--line);
+    border-radius:9px;padding:11px;color:var(--ink);font:inherit}
+  button{width:100%;background:var(--ru);border:none;color:#11224D;font:inherit;font-size:16px;
+    font-weight:800;padding:14px;border-radius:11px;margin-top:10px}
+  button:disabled{opacity:.45}
+  button.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);font-weight:600;font-size:14px}
+  img.prev{max-width:100%;border-radius:9px;margin-top:10px;display:none}
+  .hint{font-size:12.5px;color:var(--muted);line-height:1.6}
+  .bar{height:6px;background:var(--surface-2);border-radius:4px;overflow:hidden;margin:10px 0 4px}
+  .bar>i{display:block;height:100%;background:var(--accent);width:0;transition:width .2s}
+  .st{font-size:12.5px;color:var(--muted);min-height:18px}
+  table{width:100%;border-collapse:collapse;margin-top:6px}
+  th,td{border-bottom:1px solid var(--line);padding:7px 5px;font-size:13px;text-align:left;vertical-align:top}
+  th{color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+  .n{font-variant-numeric:tabular-nums;white-space:nowrap}
+  .win{color:var(--ok);font-weight:700}
+  pre{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px;
+      font-size:11px;line-height:1.45;white-space:pre-wrap;word-break:break-word;max-height:230px;overflow:auto;margin:6px 0 0}
+  .tag{display:inline-block;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;
+       padding:2px 7px;font-size:11px;color:var(--muted);margin-right:5px}
+  .err{color:var(--warn);font-size:13px;line-height:1.6}
+  .ok{color:var(--ok)}
+  details{margin-top:10px}
+  summary{font-size:13px;color:var(--accent);cursor:pointer}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Teste de leitura — qual modelo compensa</h1>
+  <p>Lê a MESMA foto de três jeitos e mostra tempo e resultado de cada um. Nada sai do aparelho.</p>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <h2>1. Escolha a foto</h2>
+    <input type="file" accept="image/*" id="arq" onchange="escolheu(this)">
+    <div class="hint" style="margin-top:8px">Use um documento de verdade ou um print de escala — o mesmo tipo de imagem do dia a dia.</div>
+    <img class="prev" id="prev" alt="">
+    <button id="go" onclick="rodar()" disabled>Rodar o teste</button>
+    <button class="ghost" onclick="limparCache()">Limpar modelos guardados (refazer o download)</button>
+    <div class="hint" style="margin-top:10px">Na <b>primeira</b> vez ele baixa os dois modelos (cerca de 1 MB o rápido e 14 MB o bom). Faça no wi-fi. Depois fica guardado no aparelho.</div>
+    <div class="bar"><i id="barra"></i></div>
+    <div class="st" id="status">Aguardando a foto.</div>
+  </section>
+
+  <section id="sec_res" style="display:none">
+    <h2>2. Resultado</h2>
+    <table id="tab"></table>
+    <div class="hint" id="veredito" style="margin-top:12px"></div>
+    <details><summary>Ver o texto que cada um leu</summary><div id="textos"></div></details>
+  </section>
+
+  <section>
+    <h2>Como ler os números</h2>
+    <div class="hint">
+      <b>Download</b> só acontece na primeira vez de cada modelo; depois fica guardado no aparelho.
+      O que importa no dia a dia é a coluna <b>Leitura</b>.<br><br>
+      <b>Rápido ×2</b> é o que o app faz hoje: modelo leve, lendo duas vezes.<br>
+      <b>Bom ×1</b> é a proposta: modelo pesado, lendo uma vez só.<br>
+      <b>Só dígitos</b> mostra o ganho de travar o alfabeto quando o campo é CPF, RG ou data.
+    </div>
+  </section>
+
+  <section>
+    <h2>Este aparelho</h2>
+    <div class="hint" id="info"></div>
+  </section>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script>
+var FAST='https://tessdata.projectnaptha.com/4.0.0_fast';
+var BEST='https://tessdata.projectnaptha.com/4.0.0_best';
+var arquivo=null, imgBitmap=null;
+
+/* ---------- info do aparelho ---------- */
+(function(){
+  var m=navigator.deviceMemory?navigator.deviceMemory+' GB de RAM':'RAM não informada';
+  var c=navigator.hardwareConcurrency?navigator.hardwareConcurrency+' núcleos':'núcleos não informados';
+  document.getElementById('info').innerHTML=
+    '<span class="tag">'+m+'</span><span class="tag">'+c+'</span>'+
+    '<span class="tag">'+(navigator.onLine?'com internet':'sem internet')+'</span>';
+})();
+
+/* o leitor vem de fora: sem internet na primeira vez, nada roda */
+window.addEventListener('load',function(){
+  if(typeof Tesseract==='undefined'){
+    document.getElementById('go').disabled=true;
+    document.getElementById('status').innerHTML=
+      '<span class="err">Não consegui carregar o leitor. Ele vem da internet na primeira vez — '+
+      'conecte-se e recarregue a página.</span>';
+  }
+});
+
+function escolheu(inp){
+  arquivo=inp.files&&inp.files[0];
+  var p=document.getElementById('prev');
+  if(!arquivo){document.getElementById('go').disabled=true;return}
+  p.src=URL.createObjectURL(arquivo);p.style.display='block';
+  document.getElementById('go').disabled=false;
+  document.getElementById('status').textContent='Foto pronta. Toque em "Rodar o teste".';
+}
+
+function st(t){document.getElementById('status').textContent=t}
+function prog(f){document.getElementById('barra').style.width=Math.round(f*100)+'%'}
+
+/* amplia 2x, igual o app faz na segunda passada */
+function upscale2x(file){
+  return new Promise(function(res){
+    var img=new Image();
+    img.onload=function(){
+      var c=document.createElement('canvas');
+      c.width=img.naturalWidth*2;c.height=img.naturalHeight*2;
+      var x=c.getContext('2d');x.imageSmoothingQuality='high';
+      x.drawImage(img,0,0,c.width,c.height);res(c);
+    };
+    img.onerror=function(){res(null)};
+    img.src=URL.createObjectURL(file);
+  });
+}
+
+/* uma rodada: cria o worker, lê, devolve tempos e texto */
+function rodada(nome,langPath,fonte,whitelist,rotulo){
+  var tDown=0,tLer=0,txt='',erro='';
+  var t0=Date.now();
+  return Tesseract.createWorker('por',1,{
+    langPath:langPath, gzip:true,
+    logger:function(m){
+      if(m.status==='recognizing text')prog(m.progress);
+      else if(m.progress)st(rotulo+': '+m.status+' '+Math.round(m.progress*100)+'%');
+    }
+  }).then(function(w){
+    tDown=Date.now()-t0;
+    var p=whitelist?w.setParameters({tessedit_char_whitelist:whitelist}):Promise.resolve();
+    return p.then(function(){
+      var t1=Date.now();
+      return w.recognize(fonte).then(function(r){
+        tLer=Date.now()-t1;
+        txt=(r&&r.data&&r.data.text)||'';
+        return w.terminate();
+      });
+    });
+  }).then(function(){
+    return {nome:nome,down:tDown,ler:tLer,txt:txt,erro:''};
+  }).catch(function(e){
+    return {nome:nome,down:tDown,ler:tLer,txt:'',erro:(e&&e.message)||String(e)};
+  });
+}
+
+/* extrai o que interessa, para comparar acerto e não só velocidade */
+function achados(t){
+  t=t||'';
+  var cpf=(t.match(/\d{3}[.\s]?\d{3}[.\s]?\d{3}[-\s]?\d{2}/)||[''])[0];
+  var data=(t.match(/\d{2}[\/.\-]\d{2}[\/.\-]\d{4}/)||[''])[0];
+  var hora=(t.match(/\b([01]?\d|2[0-3])[:.][0-5]\d\b/)||[''])[0];
+  var linhas=t.split('\n').filter(function(l){return l.trim().length>2});
+  return {cpf:cpf,data:data,hora:hora,chars:t.replace(/\s/g,'').length,linhas:linhas.length};
+}
+
+function rodar(){
+  if(!arquivo)return;
+  if(typeof Tesseract==='undefined'){
+    st('O leitor não carregou. Conecte-se à internet e recarregue a página.');return;
+  }
+  document.getElementById('go').disabled=true;
+  document.getElementById('sec_res').style.display='none';
+  var res=[];
+
+  st('Preparando…');
+  upscale2x(arquivo).then(function(c2x){
+    /* A) o que o app faz hoje: modelo rápido, duas passadas */
+    return rodada('Rápido ×2 (app hoje)',FAST,arquivo,null,'Rápido, 1ª passada').then(function(a1){
+      return rodada('__2a',FAST,c2x||arquivo,null,'Rápido, 2ª passada').then(function(a2){
+        res.push({nome:'Rápido ×2 (app hoje)',down:a1.down+a2.down,ler:a1.ler+a2.ler,
+                  txt:a1.txt+'\n----- 2ª passada -----\n'+a2.txt,erro:a1.erro||a2.erro});
+        /* B) proposta: modelo bom, uma passada */
+        return rodada('Bom ×1 (proposta)',BEST,arquivo,null,'Modelo bom');
+      }).then(function(b){
+        res.push(b);
+        /* C) alfabeto travado em dígitos */
+        return rodada('Bom, só dígitos',BEST,arquivo,'0123456789./- ','Só dígitos');
+      }).then(function(c){
+        res.push(c);
+        mostrar(res);
+      });
+    });
+  }).catch(function(e){
+    st('Falhou: '+((e&&e.message)||e));
+    document.getElementById('go').disabled=false;
+  });
+}
+
+function mostrar(res){
+  prog(1);st('Concluído.');
+  document.getElementById('go').disabled=false;
+  var vivos=res.filter(function(r){return !r.erro});
+  var maisRapido=null;
+  vivos.forEach(function(r){if(!maisRapido||r.ler<maisRapido.ler)maisRapido=r});
+
+  var h='<tr><th>Modo</th><th class="n">Download</th><th class="n">Leitura</th><th>CPF lido</th><th>Data</th><th class="n">Linhas</th></tr>';
+  res.forEach(function(r){
+    if(r.erro){
+      h+='<tr><td>'+r.nome+'</td><td colspan="5" class="err">falhou: '+r.erro+'</td></tr>';return;
+    }
+    var a=achados(r.txt);
+    var win=(maisRapido&&r===maisRapido)?' class="win"':'';
+    h+='<tr><td>'+r.nome+'</td>'+
+       '<td class="n">'+(r.down/1000).toFixed(1)+'s</td>'+
+       '<td class="n"'+win+'>'+(r.ler/1000).toFixed(1)+'s</td>'+
+       '<td>'+(a.cpf||'<span class="err">—</span>')+'</td>'+
+       '<td>'+(a.data||'<span class="err">—</span>')+'</td>'+
+       '<td class="n">'+a.linhas+'</td></tr>';
+  });
+  document.getElementById('tab').innerHTML=h;
+
+  var t='';
+  if(vivos.length>=2){
+    var hoje=vivos[0],bom=vivos[1];
+    var dif=bom.ler-hoje.ler;
+    t='Leitura: <b>'+(hoje.ler/1000).toFixed(1)+'s</b> hoje contra <b>'+(bom.ler/1000).toFixed(1)+'s</b> com o modelo bom. ';
+    t+= dif<=0 ? '<span class="ok">O modelo bom saiu mais rápido — troca vale a pena sem ressalva.</span>'
+              : (dif<3000 ? '<span class="ok">Diferença pequena; se ele ler melhor, compensa.</span>'
+                          : '<span class="err">Ficou '+(dif/1000).toFixed(1)+'s mais lento por foto. Com 4 abordados são '+(dif*4/1000).toFixed(0)+'s a mais.</span>');
+    t+='<br><br>Agora compare o texto lido nos dois: velocidade só importa se o resultado for pelo menos igual.';
+  }
+  document.getElementById('veredito').innerHTML=t;
+
+  var tx='';
+  res.forEach(function(r){
+    tx+='<div class="tag" style="margin-top:10px">'+r.nome+'</div><pre>'+
+        (r.erro?('ERRO: '+r.erro):(r.txt||'(vazio)')).replace(/</g,'&lt;')+'</pre>';
+  });
+  document.getElementById('textos').innerHTML=tx;
+  document.getElementById('sec_res').style.display='block';
+}
+
+function limparCache(){
+  try{
+    indexedDB.deleteDatabase('keyval-store');
+    localStorage.clear();
+    st('Modelos apagados. O próximo teste baixa tudo de novo.');
+  }catch(e){st('Não consegui limpar: '+e.message)}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+GCM · REGISTRO ÚNICO DE OCORRÊNCIA
+Pacote para publicação (endereço fixo + instalação como aplicativo)
+
+===============================================================
+O QUE TEM NESTA PASTA
+===============================================================
+index.html ................ o aplicativo
+manifest.json ............. dados de instalação (nome, ícone, cor)
+sw.js ..................... permite funcionar sem internet
+icons/ .................... ícone R.U (azul marinho e amarelo)
+robots.txt ................ mantém a página fora das buscas
+LEIA-ME.txt ............... este guia
+
+Não renomeie nem separe os arquivos. Publique a PASTA INTEIRA,
+com a subpasta icons junto.
+
+Se subir só o index.html, o app até abre, mas o Android instala
+como atalho: sem o ícone R.U e sem funcionar offline.
+
+Quando o Android oferecer "Criar atalho" em vez de "Instalar
+aplicativo", toque no botão APP > "Por que não instala?". Ele
+testa uma a uma as exigências do Chrome e mostra em vermelho
+o que está impedindo.
+
+===============================================================
+PUBLICAR — OPÇÃO A: NETLIFY DROP (mais rápido, ~2 minutos)
+===============================================================
+1. Descompacte o arquivo .zip no computador.
+2. Abra:  https://app.netlify.com/drop
+3. Arraste a PASTA descompactada para dentro da página.
+4. Aguarde. Vai aparecer um endereço parecido com:
+      https://algum-nome-aleatorio.netlify.app
+5. Esse é o endereço definitivo. Guarde-o.
+
+Opcional (recomendado): crie uma conta gratuita para poder
+renomear o endereço (ex.: gcm-romu-ro.netlify.app) e para
+conseguir atualizar o app depois.
+
+===============================================================
+PUBLICAR — OPÇÃO B: GITHUB PAGES (mais estável a longo prazo)
+===============================================================
+1. Crie conta em https://github.com
+2. Novo repositório > nome: registro-ro > Público > Create.
+3. "Add file" > "Upload files" > envie TODOS os arquivos
+   (inclusive a pasta icons) > Commit.
+4. Settings > Pages > Source: "Deploy from a branch"
+   > Branch: main > pasta: / (root) > Save.
+5. Em 1-2 minutos sai o endereço:
+      https://SEU-USUARIO.github.io/registro-ro/
+
+===============================================================
+INSTALAR NO CELULAR (depois de publicado)
+===============================================================
+Jeito mais fácil: abra o endereço e toque no botão APP, no
+canto superior direito da tela. No Android ele já começa a
+instalar na hora. No iPhone ele mostra o passo a passo do
+Safari. Nos dois casos dá para enviar o endereço para quem
+mais quiser instalar.
+
+Na mão, se preferir:
+1. Abra o endereço no CHROME do celular.
+2. Menu (3 pontinhos) > "Adicionar à tela inicial" / "Instalar".
+3. Confirme. O ícone R.U aparece na tela inicial.
+4. Abra SEMPRE por esse ícone.
+
+No iPhone é pelo SAFARI: botão Compartilhar > "Adicionar à
+Tela de Início". O botão APP mostra esse passo a passo.
+
+Ao abrir pelo ícone, ele roda em tela cheia, sem barra do
+navegador, como um aplicativo comum.
+
+===============================================================
+O QUE MUDA DEPOIS DE PUBLICAR
+===============================================================
+- O endereço nunca expira (acabou o "arquivo não encontrado").
+- Os dados param de sumir: equipe/turno, últimos históricos,
+  estatística de 72h e a configuração do Google Forms passam a
+  ficar guardados de forma estável.
+- O GPS passa a funcionar (só funciona em endereço https).
+- Funciona sem internet depois da primeira abertura.
+- Para atualizar: basta substituir o index.html na hospedagem.
+  Todos os aparelhos recebem a nova versão ao abrir com rede.
+
+===============================================================
+IMPORTANTE — ANTES DE PUBLICAR EM ENDEREÇO PÚBLICO
+===============================================================
+- O endereço é público para quem tiver o link. NÃO coloque
+  dados de ocorrência real dentro do arquivo antes de publicar.
+- O aplicativo em si não guarda nem transmite dados pessoais:
+  tudo o que é preenchido fica apenas no aparelho de quem usa.
+- Para uso institucional, o ideal é hospedar em endereço
+  oficial da Prefeitura/Secretaria.
+
+===============================================================
+DEPOIS DE INSTALAR — RECONFIGURAR (uma vez só)
+===============================================================
+Como o endereço muda, refaça a configuração:
+1. Aba Equipe: viatura, placa, encarregado, motorista e auxiliares.
+   (Esses dados ficam guardados por 12 horas, SÓ neste aparelho.
+    Quem abrir o link em outro celular encontra tudo em branco.)
+2. Aba Abordagem: ÁREA DE PATRULHAMENTO e EQUIPE.
+3. Aba Saídas > Google Forms: cole novamente o link
+   pré-preenchido e confira o mapeamento das perguntas.
+
+===============================================================
+ABA OPERAÇÕES (Rel. OP.)
+===============================================================
+Usada pelo encarregado do grupo tático quando há operação.
+Reproduz o Relatório de Operações oficial: cabeçalho, histórico,
+efetivo, meios, faltas, ocorrências atendidas, apreensões,
+outros órgãos e encerramento.
+
+Ao tocar em INICIAR CRONÔMETRO, o app já traz sozinho a data, a
+hora, a O.S., o local, a natureza, o encarregado e monta a
+primeira linha do efetivo e dos meios com a guarnição e a
+viatura do turno. O campo TOTAL soma as colunas sozinho.
+
+No fim, "Salvar Rel. OP. em PDF" gera o documento no mesmo
+formato do formulário oficial.
