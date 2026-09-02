@@ -330,7 +330,7 @@
 
 <header><div class="bar">
   <div class="shield">GCM</div>
-  <div><h1>Registro de Abordagens</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v31 · 27/08 12:42</span></p></div>
+  <div><h1>Registro de Abordagens</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v33 · 31/08 correções do leitor de escala</span></p></div>
   <button class="app-btn" id="app_btn" onclick="appClick()" title="Instalar o aplicativo no celular"><span class="dot"></span><span class="lbl">App</span></button>
 </div></header>
 
@@ -2448,15 +2448,53 @@
      (ENC / MOT / AUX...). Guarnição nova começa a cada ENC. O grupo tático
      termina quando aparece a próxima ordem de serviço. */
   var RE_RF_E   =/(\d{3})[.\s]?(\d{3})[.\s]?(\d{1,3})\b/;
-  var RE_TURNO_E=/(\d{1,2})\s*h\s*\/\s*(\d{1,2})\s*[hn]/i;
-  var RE_PREF_E =/\b(CE|SI|SL|SUB|IA|CR|ID|INSP|CD|GCM|[123]\s*º?)\s*(\d{3,5})\b/i;
-  var RE_OS_E   =/(\d{3,4})\s*\/\s*([A-Z]{2,5})\s*\/\s*(\d{4})/i;
-  var RE_GRUPO_E=/GRUPO\s*T[ÁA]?TICO\s*(\d+)/i;
+  /* o "/" da escala sai como I, l, |, \ — e o h do turno vira n, w ou some
+     de vez ("CE 10260 10/22"). O ponto antes do número exclui o RF partido
+     ("709.058.7/00"), que senão viraria turno. */
+  var RE_TURNO_E=/(?:^|[^\d.])(\d{1,2})\s*[hnwm]?\s*[\/\\|]\s*(\d{1,2})\s*[hnwm]?(?![\d.])/i;
+  var RE_PREF_E =/\b(CE|SI|SL|SUB|IA|CR|ID|INSP|CD|GCM|[123]\s*º)\s*(\d{3,5})\b/i;
+  var RE_OS_E   =/(\d{3,4})\s*[\/\\|I1]\s*([A-Z]{2,6}?)\s*[\/\\|I1]?\s*(\d{4})\b/i;
+  var RE_GRUPO_E=/GRUPO\s*T[ÁA]?T[IÍ]COS?\s*(\d*)/i;
   var POSTOS_E  =['CE','SI','SL','SUB','IA','CR','ID','INSP','CD','GCM'];
+  var RE_POSTO_E='CE|SI|SL|SUB|IA|CR|ID|INSP|CD|GCM|[123]\\s*º';
+
+  /* ==================== PADRÕES DE COLUNA ====================
+     A escala impressa tem sempre as mesmas cinco colunas, nesta ordem:
+
+       1 FUNÇÃO   ENC. | MOT. | AUX.
+       2 RF       000.000.000
+       3 NOME     graduação + nome, em caixa alta
+       4 NÚMERO   graduação + 3 a 5 dígitos   (o "SI 7691" da folha)
+       5 TURNO    00h/00h, mesclado nas 3 linhas da guarnição
+
+     Cada célula lida é medida contra esses padrões. Quem casa por inteiro
+     manda — não a posição. É isso que segura a leitura quando o leitor perde
+     uma coluna e desloca todas as seguintes, que era de onde vinha a maior
+     parte do lixo (nome saindo da coluna do número, RF vindo do turno). */
+  var ESC_COLUNAS=[
+    {id:'func',  re:/^(ENC|EN|MOT|MO|AUX|AU)\.?$/i},
+    {id:'rf',    re:/^\d{3}[.\s]\d{3}[.\s]\d{3}\.?$/},
+    {id:'num',   re:new RegExp('^('+RE_POSTO_E+')\\s*\\d{3,5}$','i')},
+    {id:'turno', re:/^\d{1,2}\s*[hn]\s*[\/\\|I]\s*\d{1,2}\s*[hn]\.?$/i},
+    {id:'nome',  re:new RegExp('^(?:('+RE_POSTO_E+')\\s+)?[A-ZÀ-Ý][A-ZÀ-Ý.\\s]{2,}$')}
+  ];
+
+  /* diz a que coluna a célula pertence; '' quando não casa com nenhuma */
+  function escColuna(cel){
+    var t=escLimpa(cel);
+    if(!t)return '';
+    for(var i=0;i<ESC_COLUNAS.length;i++)if(ESC_COLUNAS[i].re.test(t))return ESC_COLUNAS[i].id;
+    /* célula mista, quando a tabela vem com menos colunas do que a folha:
+       "740.832.300 SI CLEY" traz RF e nome juntos */
+    if(RE_RF_E.test(t)&&/[A-ZÀ-Ý]{3,}/.test(t))return 'rf+nome';
+    return '';
+  }
 
   function escLimpa(t){
     t=String(t||'');
     t=t.replace(/[\[\]\(\)\{\}\|!¡‘’"“”*]+/g,' ');   /* "(SI BARBOSA" -> "SI BARBOSA" */
+    /* trocas que o leitor faz o tempo todo na escala impressa */
+    t=t.replace(/[$§]/g,'S').replace(/£/g,'L').replace(/[ÊÈË]/g,'E').replace(/[ÎÏ]/g,'I');
     t=t.replace(/\s+—\s+/g,' ');
     t=t.replace(/\bI(CE|SI|SL|SUB)\b/g,'$1');
     t=t.replace(/\bI(CE|SI|SL|SUB)(?=[A-ZÀ-Ý])/g,'$1 ');   /* ICELEANDRO -> CE LEANDRO */
@@ -2466,7 +2504,104 @@
     t=t.replace(/\b([123])\s*[o°ºª](?![A-Za-zÀ-Ý0-9])/g,'$1º');
     t=t.replace(/\bqop\b/gi,'10h');
     t=t.replace(/(\d{3}[.\s]\d{3}[.\s]\d)\s*\/\s*(\d{2})\b/g,'$1$2');
+    /* Letra lida no lugar do 1º dígito do RF: "G27,424.300" -> "927.424.300".
+       Só troca quando o resto do token inteiro é número — assim "SI 6419" e
+       "CE 9901" (prefixo/distintivo) não são tocados. */
+    t=t.split(' ').map(function(w){
+      var mg=w.match(/^([GOSBZIQ])([0-9.,]{6,})$/i);
+      if(!mg)return w;
+      return ({G:'9',O:'0',S:'5',B:'8',Z:'2',I:'1',Q:'0'}[mg[1].toUpperCase()]||mg[1])+mg[2];
+    }).join(' ');
+    t=t.replace(/(\d),(\d)/g,'$1.$2');            /* "927,424.300" -> "927.424.300" */
+    /* graduação grudada no nome por um separador sujo: "CEÇCARDOSO" -> "CE CARDOSO" */
+    t=t.replace(/\b(CE|CD|SI|SL|SUB|INSP|IA|ID|IS)[Ç·.,\-]([A-ZÀ-Ý]{3,})/g,'$1 $2');
+    /* graduação com acento inventado pelo leitor: "CÉ 7723" -> "CE 7723".
+       Token com dígito passa intacto, senão "SI16419" viraria só "SI". */
+    t=t.split(' ').map(function(w){
+      if(/[0-9]/.test(w))return w;
+      var s=escSemAcento(w).replace(/[^A-Z]/g,'');
+      return (s.length<=4&&POSTOS_E.indexOf(s)>=0)?s:w;
+    }).join(' ');
+    /* letra intrusa no número da guarnição: "CES9198" -> "CE 9198",
+       "SI6B718" -> "SI 6718" */
+    t=t.replace(/\b(CE|CD|SI|SL|SUB|INSP)\s*[A-Z](\d{4,5})\b/g,'$1 $2');
+    t=t.replace(/\b(CE|CD|SI|SL|SUB|INSP)\s*(\d)[A-Z](\d{3,4})\b/g,'$1 $2$3');
     return t.replace(/\s{2,}/g,' ').trim();
+  }
+
+  /* A sigla da O.S. sai torta no OCR (SAFE, SAF, SAB...): quase sempre é SAE. */
+  var SIGLAS_E=['SAE','ROMU','GCM','SMSU','SOP','SAAE'];
+  function escSigla(s){
+    var t=String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/^5/,'S').replace(/0/g,'O');
+    if(SIGLAS_E.indexOf(t)>=0)return t;
+    if(/^S[A4]?[FEB]*E?$/.test(t))return 'SAE';
+    return t;
+  }
+  /* Descrição da operação: tira o rótulo da 1ª coluna ("OS", que o leitor
+     devolve como DS/0S/US) e conserta o nome de local que vira número. */
+  function escDesc(t){
+    t=String(t||'').replace(/^[^A-ZÀ-Ý0-9]+/i,'');
+    /* rótulo da 1ª coluna: OS, e como o leitor devolve — DS, 0S, US, LOS */
+    t=t.replace(/^\s*[A-Z]?\s*(?:[ODUQ0CL]\s*\.?\s*S|S)\s*\.?\s*(?=[\s\-–—:]|$)/i,'')
+       .replace(/^[\s\-–—:.=<>]+/,'');
+    /* Pedaços da coluna vizinha caem na frente do texto ("—. E eS < BLOQUEIO").
+       Joga fora o que vier antes da primeira palavra de verdade, no máximo
+       quatro cacos, para não comer uma descrição curta legítima. */
+    var pal=t.split(/\s+/),k=0;
+    while(k<pal.length&&!/^[A-ZÀ-Ý]{3,}/i.test(pal[k]))k++;
+    if(k>0&&k<=4&&k<pal.length)t=pal.slice(k).join(' ');
+    t=t.replace(/\s\d\s(?=[A-ZÀ-Ý])/g,' ');            /* "SATURAÇÃO 4 PIRITUBA" */
+    t=t.replace(/\bN[O0]\s+L[O0][CÇ]\w*\b/gi,'NO LOCAL');
+    t=t.replace(/\bFREGUESIA\s+D[O0]\s*[6G0OÓ]?\b/gi,'FREGUESIA DO Ó');
+    return t.replace(/\s{2,}/g,' ').trim();
+  }
+
+  /* ---------- lixo do leitor ----------
+     Os nomes da escala são impressos SEM acento. Todo acento que aparece é
+     invenção do leitor ("LUCANOÀÀÚÀÚÔ", "NÃNÚÂÁÀÁÁAARÕN", "CÉ JULIANO Í").
+     O Ç fica de fora da lista porque FRANÇA existe de verdade. */
+  var RE_ACENTO_E=/[ÀÁÂÃÄÅÈÉÊËÌÍÎÏÒÓÔÕÖÙÚÛÜÝ]/;
+  var PARTICULAS_E=['DE','DA','DO','DI','DU','E'];
+  function escSemAcento(t){
+    return String(t||'')
+      .replace(/[ÀÁÂÃÄÅ]/g,'A').replace(/[ÈÉÊË]/g,'E').replace(/[ÌÍÎÏ]/g,'I')
+      .replace(/[ÒÓÔÕÖ]/g,'O').replace(/[ÙÚÛÜ]/g,'U').replace(/Ý/g,'Y');
+  }
+
+  /* Limpa o nome do integrante palavra por palavra. Corta a palavra no
+     primeiro acento (é onde o lixo começa), joga fora letra solta que o
+     leitor pendura no fim ("CE LUCIANO I", "SI PINEZ NO", "CE TAVARES TA
+     DIAS") e preserva inicial com ponto ("R. SANCHES") e graduação. */
+  function escNomeLimpo(n){
+    var toks=String(n||'').toUpperCase().split(/\s+/).filter(Boolean).map(function(w){
+      if(/^[123]\s*[ºO°]$/.test(w))return w[0]+'º';
+      var sem=escSemAcento(w).replace(/[^A-ZÇ.]/g,'');
+      if(POSTOS_E.indexOf(sem.replace(/\./g,''))>=0)return sem.replace(/\./g,'');
+      var i=w.search(RE_ACENTO_E);
+      return escSemAcento(i>=0?w.slice(0,i):w).replace(/[^A-ZÇ.]/g,'');
+    }).filter(Boolean);
+    var n0=toks.length;
+    return toks.filter(function(w,k){
+      if(w.length>=3)return true;
+      if(/\.$/.test(w))return true;                    /* inicial: "R." */
+      if(/^[123]º$/.test(w))return true;               /* graduação */
+      if(POSTOS_E.indexOf(w)>=0)return true;           /* CE, SI, CD... */
+      return PARTICULAS_E.indexOf(w)>=0 && k>0 && k<n0-1;
+    }).join(' ').trim();
+  }
+
+  /* O RF tem SEMPRE nove dígitos e nunca começa em 0. Quando o leitor cola
+     lixo junto ("815. 649.200 200", "0927.424.300", "7330766 600"), escolhe a
+     janela de nove que começa com dígito de RF de verdade — em vez de devolver
+     um número truncado tipo "733.076.6". */
+  function escRF(txt){
+    var d=String(txt||'').replace(/\D/g,'');
+    if(d.length<9)return '';
+    function fmt(x){return x.slice(0,3)+'.'+x.slice(3,6)+'.'+x.slice(6,9)}
+    var cand=[d.substr(0,9)];
+    if(d.length>9)cand.push(d.substr(1,9));
+    for(var i=0;i<cand.length;i++)if(/^[5-9]/.test(cand[i]))return fmt(cand[i]);
+    return fmt(cand[0]);
   }
 
   function escLinha(cels){
@@ -2476,16 +2611,40 @@
     if(g)return {tipo:'grupo',grupo:g[1]};
     var os=todo.match(RE_OS_E);
     if(os&&!RE_RF_E.test(todo))
-      return {tipo:'os',os:os[1]+'/'+os[2].toUpperCase()+'/'+os[3],
-              desc:todo.replace(RE_OS_E,'')
-                       .replace(/^\s*(O\.?\s?S\.?|S)\b/i,'')     /* o rótulo "OS" da 1ª coluna */
-                       .replace(/^[\s\-–:]+/,'').replace(/\s{2,}/g,' ').trim()};
+      return {tipo:'os',os:os[1]+'/'+escSigla(os[2])+'/'+os[3],
+              desc:escDesc(todo.replace(RE_OS_E,''))};
 
     var r={tipo:'agente',func:'',rf:'',posto:'',nome:'',pref:'',turno:''};
+
+    /* Passa os padrões de coluna primeiro. O que casa por inteiro é certeza e
+       fica travado; o resto da função continua trabalhando só nos buracos. */
+    var col={func:'',rf:'',pref:'',turno:'',nome:''},mx;
+    cels.forEach(function(c){
+      var cel=escLimpa(c),tipo=escColuna(cel);
+      if(tipo==='func'&&!col.func)
+        col.func={EN:'ENC',ENC:'ENC',MO:'MOT',MOT:'MOT',AU:'AUX',AUX:'AUX'}[cel.replace(/\./g,'').toUpperCase()]||'';
+      else if(tipo==='rf'&&!col.rf){mx=cel.match(RE_RF_E);if(mx)col.rf=mx[1]+'.'+mx[2]+'.'+mx[3]}
+      else if(tipo==='num'&&!col.pref){mx=cel.match(RE_PREF_E);if(mx)col.pref=mx[1].toUpperCase().replace(/\s+/g,'')+' '+mx[2]}
+      else if(tipo==='turno'&&!col.turno){mx=cel.match(RE_TURNO_E);if(mx&&+mx[1]<=24&&+mx[2]<=24)col.turno=('0'+mx[1]).slice(-2)+'h/'+('0'+mx[2]).slice(-2)+'h'}
+      else if(tipo==='nome'&&!col.nome)col.nome=cel;
+    });
+    /* Linha de operação sem RF ("BLOQUEIO INTELIGENTE - 09h NO LOCAL") não é
+       gente. Quando o número da O.S. sai ilegível, ela entrava como integrante
+       e criava uma guarnição fantasma com o nome da operação. */
+    if(!RE_RF_E.test(todo)&&
+       /\b(OPERA[CÇ][AÃ]O|BLOQUEIO|SATURA[CÇ][AÃ]O|PATRULHAMENTO|NO\s+LOCAL|ORDEM\s+DE\s+SERVI)/i.test(todo))
+      return {tipo:'os',os:'',desc:escDesc(todo)};
     var f=(cels[0]||'').toUpperCase().match(/\b(ENC?|MOT?|AUX)\b/)||todo.toUpperCase().match(/\b(ENC?|MOT?|AUX)\b/);
     if(f)r.func={EN:'ENC',ENC:'ENC',MO:'MOT',MOT:'MOT',AUX:'AUX'}[f[1]];
-    var m=todo.match(RE_RF_E);if(m)r.rf=m[1]+'.'+m[2]+'.'+m[3];
+    var m=todo.match(RE_RF_E);
+    if(m){
+      /* pega TODO o trecho numérico a partir do RF, não só o que a regex
+         casou — é o que permite descartar o lixo colado e fechar 9 dígitos */
+      var bloco=(todo.slice(m.index).match(/^[\d.\s\/]+/)||[m[0]])[0];
+      r.rf=escRF(bloco)||m[1]+'.'+m[2]+'.'+m[3];
+    }
     var t=todo.match(RE_TURNO_E);
+    if(t&&(+t[1]>24||+t[2]>24))t=null;      /* "40/22" não é turno, é leitura torta */
     if(t)r.turno=('0'+t[1]).slice(-2)+'h/'+('0'+t[2]).slice(-2)+'h';
 
     /* O nome fica na MESMA célula do RF. Antes o código assumia que era sempre
@@ -2495,11 +2654,17 @@
     for(var ci=0;ci<cels.length;ci++){ if(RE_RF_E.test(escLimpa(cels[ci]))){iRF=ci;break} }
     var meio = iRF>=0 ? escLimpa(cels[iRF]) : (cels.length>1?escLimpa(cels[1]):todo);
 
-    /* o prefixo vem de outra célula que não a do RF */
-    var ultima = (cels.length>1 && iRF!==cels.length-1) ? escLimpa(cels[cels.length-1]) : todo;
+    /* o prefixo vem de outra célula que não a do RF — e a última célula da
+       linha costuma vir vazia, então procura de trás para frente a última que
+       tem conteúdo */
+    var ultima=todo;
+    for(var cu=cels.length-1;cu>iRF&&cu>0;cu--){
+      var cc=escLimpa(cels[cu]);
+      if(cc){ultima=cc;break}
+    }
     var pr=ultima.match(RE_PREF_E)||todo.match(RE_PREF_E);
     if(pr)r.pref=pr[1].toUpperCase().replace(/\s+/g,'')+' '+pr[2];
-    if(!r.pref){var mm=ultima.replace(/\s+/g,'').match(/^([123])[9ºo]?(\d{4,5})$/i);if(mm)r.pref=mm[1]+'º '+mm[2]}
+    if(!r.pref){var mm=ultima.replace(/\s+/g,'').match(/^([123])[ºo°](\d{4,5})$/i);if(mm)r.pref=mm[1]+'º '+mm[2]}
 
     var dep=meio;
     var mm2=meio.match(RE_RF_E);
@@ -2536,6 +2701,10 @@
       }
     }
     dep=escLimpa(dep).replace(/^[\s\-–\/]+/,'');
+    /* "SIPINEZ", "CELUCIANO", "CEKIKUCHI": a graduação gruda no nome quando o
+       espaço da tabela some. Só separa quando sobram 4+ letras depois dela e a
+       linha já tem RF — assim um nome legítimo como CESAR não é partido. */
+    if(r.rf)dep=dep.replace(/\b(CE|SI|SL|SUB|CD|INSP)([A-ZÀ-Ý]{4,})\b/g,'$1 $2');
     if(r.pref&&pr&&dep.indexOf(pr[0])>=0)dep=dep.replace(pr[0],' ');
     if(r.turno&&t&&dep.indexOf(t[0])>=0)dep=dep.replace(t[0],' ');
     dep=dep.replace(/\b\d{3,5}\b/g,' ').replace(/\s{2,}/g,' ').trim();
@@ -2545,6 +2714,7 @@
     dep=dep.split(/\s+/).filter(function(w){
       return !/^[\d.\/\-]+$/.test(w);
     }).join(' ');
+    dep=escNomeLimpo(dep);
     var toks=dep.split(/\s+/)
       .map(function(w){return w.replace(/^[^0-9A-Za-zÀ-Ýº]+/,'').replace(/[^0-9A-Za-zÀ-Ýº.]+$/,'')})
       .filter(Boolean);
@@ -2553,6 +2723,16 @@
       if(POSTOS_E.indexOf(cab)>=0||/^[123]º$/.test(cab)){r.posto=cab;toks.shift()}
       r.nome=toks.join(' ').replace(/\b\d{1,2}\s*h.*$/i,'')
                  .replace(/\b(CE|SI|SL|SUB|IA|CR|ID|INSP|CD|GCM|[123]º)\s*$/i,'').trim();
+    }
+    /* A coluna casada por padrão vale mais que o palpite posicional. */
+    if(col.func)r.func=col.func;
+    if(col.rf)r.rf=col.rf;
+    if(col.pref)r.pref=col.pref;
+    if(col.turno)r.turno=col.turno;
+    if(col.nome&&(!r.nome||!escNomeOk(r.nome))){
+      var tn=col.nome.split(/\s+/);
+      if(POSTOS_E.indexOf(tn[0].toUpperCase())>=0||/^[123]º$/.test(tn[0])){r.posto=tn.shift().toUpperCase()}
+      if(tn.length)r.nome=tn.join(' ');
     }
     if(!r.rf&&!r.nome)return null;
     return r;
@@ -2672,8 +2852,11 @@
         if(!ultimo.posto&&r.posto)ultimo.posto=r.posto;
         return;
       }
-      if(estrito&&!escNomeOk(r.nome))return;
-      if(estrito&&!r.rf&&!escNomeForte(r.nome))return;
+      /* Sem RF não é gente. Cabeçalho, borda de tabela e sujeira do leitor
+         ("CU URLS", "C 1 A FT KT TP", "SS", "CE E E") sempre entram sem
+         número — era daí que vinham as guarnições fantasma. O RF de nove
+         dígitos é a coisa mais confiável da folha; quem não tem, não passa. */
+      if(estrito&&!r.rf)return;
 
       if(!r.posto&&postoPend){r.posto=postoPend}
       postoPend='';
@@ -2710,6 +2893,20 @@
         gts=[alvo];
       }
     }
+    /* O turno só aparece na linha do motorista. Quando o leitor perde essa
+       célula, a guarnição fica sem horário — e aí herda das outras do MESMO
+       grupo tático, desde que todas concordem. Um grupo tático tem 3, no
+       máximo 4 guarnições: se vier mais que isso, os grupos se misturaram na
+       leitura e herdar espalharia o horário errado. Nesse caso, fica em
+       branco para o guarda lançar à mão. */
+    gts.forEach(function(g){
+      if(g.guarnicoes.length>4)return;
+      var ts={};
+      g.guarnicoes.forEach(function(gu){if(gu.turno)ts[gu.turno]=1});
+      var ks=Object.keys(ts);
+      if(ks.length!==1)return;
+      g.guarnicoes.forEach(function(gu){if(!gu.turno){gu.turno=ks[0];gu.turnoHerdado=true}});
+    });
     return gts;
   }
 
@@ -2750,26 +2947,20 @@
 
   var ESC_PSM=['4','3','6'];   /* coluna única, automático, bloco uniforme */
 
-  /* Monta a lista de leituras: a imagem inteira (pega cabeçalho e O.S.) e
-     depois faixas horizontais com sobreposição. Faixa pequena o Tesseract lê
-     bem — foi o que o recorte à mão provou. */
+  /* Alfabeto aceito na leitura da escala. Sem minúsculas (a folha é toda em
+     caixa alta) e sem símbolo nenhum além do que a tabela realmente usa.
+     Ê fica de fora de propósito: só aparecia como erro de "CE". */
+  var ESC_ALFABETO='ABCDEFGHIJKLMNOPQRSTUVWXYZÁÂÃÀÉÍÓÔÕÚÇ0123456789.,/-º ';
+
+  /* TRÊS leituras da folha inteira, e só. Cada uma enxerga a tabela de um
+     jeito; o que uma perde, a outra pega, e a fusão fica com o melhor de
+     cada linha. As faixas horizontais que eu recortava antes multiplicavam o
+     tempo por cinco sem melhorar o resultado — a folha inteira, ampliada,
+     já é o que o leitor lê melhor. */
   function escTarefas(cv){
-    var lista=[{cv:cv,psm:'4',off:0,rot:'folha inteira'},
-               {cv:cv,psm:'6',off:0,rot:'folha inteira'}];
-    var alt=cv.height;
-    if(alt>700){
-      var n=Math.min(6,Math.max(2,Math.round(alt/700)));
-      var passo=Math.floor(alt/n), sobra=Math.round(passo*0.25);
-      for(var k=0;k<n;k++){
-        var y0=Math.max(0,k*passo-sobra);
-        var y1=Math.min(alt,(k+1)*passo+sobra);
-        var faixa=document.createElement('canvas');
-        faixa.width=cv.width;faixa.height=y1-y0;
-        faixa.getContext('2d').drawImage(cv,0,y0,cv.width,y1-y0,0,0,cv.width,y1-y0);
-        lista.push({cv:faixa,psm:'6',off:y0,rot:'faixa '+(k+1)+' de '+n});
-      }
-    }
-    return lista;
+    return [{cv:cv,psm:'6',off:0,rot:'leitura 1 (tabela)'},
+            {cv:cv,psm:'4',off:0,rot:'leitura 2 (colunas)'},
+            {cv:cv,psm:'11',off:0,rot:'leitura 3 (linhas soltas)'}];
   }
 
   /* ---------- recorte da escala ----------
@@ -2844,6 +3035,61 @@
 
   function escLimparCorte(){ESC_SEL=null;escDesenha()}
 
+  /* Limiar ADAPTATIVO: cada pedaço da imagem ganha o seu próprio corte entre
+     texto e fundo. O contraste global que eu usava antes falha quando a folha
+     tem sombra de um lado ou faixas cinzas alternadas — parte do texto some.
+     Aqui a média é calculada numa janela ao redor de cada ponto (imagem
+     integral, para ser rápido no celular). */
+  function escBinariza(ctx,w,h){
+    var d=ctx.getImageData(0,0,w,h),px=d.data,i,g;
+    var cinza=new Uint8Array(w*h);
+    for(i=0;i<w*h;i++){
+      g=(px[i*4]*0.299+px[i*4+1]*0.587+px[i*4+2]*0.114)|0;
+      cinza[i]=g;
+    }
+    /* soma acumulada: permite média de qualquer janela em tempo constante */
+    var soma=new Float64Array((w+1)*(h+1));
+    for(var y=0;y<h;y++){
+      var linha=0;
+      for(var xx=0;xx<w;xx++){
+        linha+=cinza[y*w+xx];
+        soma[(y+1)*(w+1)+(xx+1)]=soma[y*(w+1)+(xx+1)]+linha;
+      }
+    }
+    var jan=Math.max(15,Math.round(Math.min(w,h)/28))|1;   /* janela ímpar */
+    var r=(jan/2)|0, ajuste=8;                              /* margem contra ruído */
+    for(var y=0;y<h;y++){
+      var y0=Math.max(0,y-r),y1=Math.min(h-1,y+r);
+      for(var xx=0;xx<w;xx++){
+        var x0=Math.max(0,xx-r),x1=Math.min(w-1,xx+r);
+        var area=(x1-x0+1)*(y1-y0+1);
+        var m=(soma[(y1+1)*(w+1)+(x1+1)]-soma[y0*(w+1)+(x1+1)]
+              -soma[(y1+1)*(w+1)+x0]+soma[y0*(w+1)+x0])/area;
+        var v=cinza[y*w+xx] < (m-ajuste) ? 0 : 255;
+        var k=(y*w+xx)*4;
+        px[k]=px[k+1]=px[k+2]=v;
+      }
+    }
+    ctx.putImageData(d,0,0);
+  }
+
+  /* Print de tela e PDF já vêm com preto no branco. Passar o limiar adaptativo
+     nesses casos só come o traço fino da letra pequena — foi o que estragou a
+     leitura da escala nítida. Aqui a imagem é medida antes: se já for quase só
+     preto e branco, ela vai crua para o leitor. */
+  function escJaLimpa(ctx,w,h){
+    try{
+      var d=ctx.getImageData(0,0,w,h).data,n=w*h,extremos=0,passo=Math.max(1,(n/40000)|0);
+      var lidos=0;
+      for(var i=0;i<n;i+=passo){
+        var g=(d[i*4]*0.299+d[i*4+1]*0.587+d[i*4+2]*0.114)|0;
+        if(g<60||g>200)extremos++;
+        lidos++;
+      }
+      return lidos>0 && extremos/lidos>0.92;
+    }catch(e){return false}
+  }
+
   /* devolve a imagem que será lida: o recorte marcado ou a foto inteira */
   function escRecorte(){
     if(!ESC_IMG)return null;
@@ -2852,31 +3098,15 @@
     var sx=0,sy=0,sw=ESC_IMG.naturalWidth,sh=ESC_IMG.naturalHeight;
     if(ESC_SEL){sx=ESC_SEL.x*fx;sy=ESC_SEL.y*fy;sw=ESC_SEL.w*fx;sh=ESC_SEL.h*fy}
     var out=document.createElement('canvas');
-    var alvo=Math.max(1,Math.min(3.5,2600/Math.max(sw,sh)));   /* letra miúda: amplia */
+    var alvo=Math.max(1,Math.min(4,3000/Math.max(sw,sh)));   /* letra miúda: amplia */
     out.width=Math.round(sw*alvo);out.height=Math.round(sh*alvo);
     var x=out.getContext('2d',{willReadFrequently:true});
     x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';
     x.drawImage(ESC_IMG,sx,sy,sw,sh,0,0,out.width,out.height);
 
-    /* cinza + contraste esticado: mesmo tratamento que resolveu a leitura do
-       B.O. Print de escala tem fundo cinza e linha preta grossa, e o texto
-       acaba ficando com pouco contraste contra o fundo. */
-    try{
-      var d=x.getImageData(0,0,out.width,out.height),px=d.data,hist=new Uint32Array(256),i,g;
-      for(i=0;i<px.length;i+=4){
-        g=(px[i]*0.299+px[i+1]*0.587+px[i+2]*0.114)|0;
-        px[i]=px[i+1]=px[i+2]=g;hist[g]++;
-      }
-      var tot=out.width*out.height,alvoC=tot*0.005,acc=0,lo=0,hi=255;
-      for(i=0;i<256;i++){acc+=hist[i];if(acc>=alvoC){lo=i;break}}
-      acc=0;
-      for(i=255;i>=0;i--){acc+=hist[i];if(acc>=alvoC){hi=i;break}}
-      if(hi-lo<40){lo=0;hi=255}
-      var mp=new Uint8Array(256);
-      for(i=0;i<256;i++){var v=(i-lo)*255/(hi-lo);mp[i]=v<0?0:(v>255?255:v|0)}
-      for(i=0;i<px.length;i+=4){var m=mp[px[i]];px[i]=px[i+1]=px[i+2]=m}
-      x.putImageData(d,0,0);
-    }catch(e){}
+    if(!escJaLimpa(x,out.width,out.height)){
+      try{escBinariza(x,out.width,out.height)}catch(e){}
+    }
     return out;
   }
 
@@ -2951,6 +3181,30 @@
     }).then(function(){pronto()},function(){pronto()});
   }
 
+  /* O próprio Android tem um OCR (o mesmo que reconhece texto na galeria), e
+     o Chrome expõe ele como TextDetector. Ele é bem melhor que o Tesseract em
+     print de tela. Nem todo aparelho/navegador tem — por isso é usado só
+     quando existe, e o resultado entra junto com as leituras do Tesseract. */
+  function escNativo(cv,cb){
+    if(typeof window.TextDetector==='undefined'){cb(null);return}
+    var det;
+    try{det=new window.TextDetector()}catch(e){cb(null);return}
+    var t0=Date.now();
+    det.detect(cv).then(function(blocos){
+      if(!blocos||!blocos.length){cb(null);return}
+      /* cada bloco vira uma linha, com a altura que o próprio aparelho indicou */
+      var linhas=blocos.map(function(b){
+        var bb=b.boundingBox||{};
+        var l=[escLimpa(b.rawValue||'')];
+        l._y=(bb.y||0)+(bb.height||0)/2;
+        return l;
+      }).filter(function(l){return l[0]});
+      linhas.sort(function(a,b){return a._y-b._y});
+      linhas._alt=14;
+      cb(linhas.length?linhas:null);
+    }).catch(function(){cb(null)});
+  }
+
   function escLerImagem(f){
     if(!f)return;
     var st=document.getElementById('esc_status');
@@ -2959,6 +3213,9 @@
     loadTesseract(function(){
       var melhor=null,i=0,grades=[];
       var tarefas=escTarefas(f);
+      escNativo(f,function(ln){
+        if(ln&&ln.length){grades.push(ln)}      /* leitura do próprio aparelho */
+      });
       (function prox(){
         if(i>=tarefas.length)return fim();
         var tf=tarefas[i++],psm=tf.psm,n=i;
@@ -2970,7 +3227,17 @@
             else if(m.status)st.textContent='Preparando o leitor… ('+n+' de '+tarefas.length+')';
           }
         }).then(function(w){
-          return w.setParameters({tessedit_pageseg_mode:psm,preserve_interword_spaces:'1'})
+          return w.setParameters({
+              tessedit_pageseg_mode:psm,
+              preserve_interword_spaces:'1',
+              /* A escala é impressa TODA em caixa alta, com números, ponto,
+                 barra, hífen e o º da graduação. Travando o alfabeto aqui,
+                 sumem de uma vez as leituras do tipo "$i64i9", "CÊ65579",
+                 "eS1283" e "Bº" — o leitor deixa de ter para onde errar. */
+              tessedit_char_whitelist:ESC_ALFABETO,
+              user_defined_dpi:'300',
+              tessedit_do_invert:'0'
+            })
             .then(function(){return w.recognize(tf.cv)})
             .then(function(r){
               var d=(r&&r.data)||{};
