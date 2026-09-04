@@ -319,10 +319,10 @@
   .gate-btn{width:100%;background:var(--accent);border:none;color:#fff;font:inherit;font-size:17px;font-weight:700;padding:16px;border-radius:12px;cursor:pointer;letter-spacing:.05em}
 </style>
 <style>
-  /* ===== APP SECUNDÁRIO: só Equipe e Abordagem ===== */
-  .tabbtn[data-p="ocorr"],.tabbtn[data-p="oper"],
+  /* ===== APP SECUNDÁRIO: Equipe, Abordagem e Ocorrência ===== */
+  .tabbtn[data-p="oper"],
   .tabbtn[data-p="saidas"],.tabbtn[data-p="stat"]{display:none !important}
-  #tab_ocorr,#tab_oper,#tab_saidas,#tab_stat{display:none !important}
+  #tab_oper,#tab_saidas,#tab_stat{display:none !important}
   .btn-pdf{display:none !important}
 </style>
 </head>
@@ -330,7 +330,7 @@
 
 <header><div class="bar">
   <div class="shield">GCM</div>
-  <div><h1>Registro de Abordagens</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v33 · 31/08 correções do leitor de escala</span></p></div>
+  <div><h1>Registro de Abordagens</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v37 · 03/09 separação das guarnições pelo turno</span></p></div>
   <button class="app-btn" id="app_btn" onclick="appClick()" title="Instalar o aplicativo no celular"><span class="dot"></span><span class="lbl">App</span></button>
 </div></header>
 
@@ -395,10 +395,9 @@
     </div></section>
     <section><div class="sec-body" style="padding-top:14px">
       <div class="tm-row">
-        <button class="tm-btn" id="ab_start" onclick="iniciar('ab')">▶ Iniciar cronômetro</button>
-        <div class="tm-live"><span id="ab_timer">00:00</span></div>
+        <div class="tm-live">⏱ <span id="ab_timer">00:00</span></div>
       </div>
-      <div class="lock-msg" id="ab_aviso">🔒 Toque em <b>Iniciar cronômetro</b> para liberar o preenchimento.</div>
+      <div class="hint" id="ab_aviso">O tempo começa a contar sozinho no primeiro campo que você preencher.</div>
     </div></section>
     <section><div class="sec-head"><h2>Dados do turno</h2></div><div class="sec-body">
       <div class="field"><label>ÁREA DE PATRULHAMENTO:</label>
@@ -418,6 +417,11 @@
       <div id="seg_abordado"></div>
       <button class="btn-add" onclick="segAdd('abordado')">+ Adicionar abordado</button>
     </div></section>
+    <section><div class="sec-head"><h2>Veículos</h2></div><div class="sec-body">
+      <div class="hint">Preencha os abordados antes. Assim, marcando <b>Situação criminal: Sim</b>, o R.O. já sai com o abordado lançado como Autor.</div>
+      <div id="seg_abd_veic"></div>
+      <button class="btn-add" onclick="segAdd('abd_veic')">+ Acrescentar veículo</button>
+    </div></section>
     <section><div class="sec-head"><h2>Apoio na abordagem</h2></div><div class="sec-body">
       <div class="field"><label>Houve apoio?</label>
         <div class="toggle">
@@ -430,13 +434,13 @@
       </div>
     </div></section>
     <div id="conc_ab_result"></div>
+    <button class="concluir-btn" onclick="concluirAbordagem()">✓ Concluir abordagem</button>
 
-    <section><div class="sec-head"><h2>Conferir o envio</h2></div><div class="sec-body">
-      <div class="hint">Ao concluir a abordagem o envio ao Google Forms é automático. Este botão serve só para conferir se este aparelho está conseguindo enviar — manda uma linha de teste com o nome <b>TESTE-APP</b>, que depois é só apagar da planilha.</div>
+    <section><div class="sec-head"><h2>Envio ao Google Forms</h2></div><div class="sec-body">
+      <div class="hint">Ao concluir a abordagem o envio é automático. Este botão serve só para conferir se este aparelho está conseguindo enviar — manda uma linha de teste com o nome <b>TESTE-APP</b>, que depois é só apagar da planilha.</div>
       <button type="button" class="btn-add" style="margin-top:10px" onclick="gfTeste()">🧪 Testar envio agora</button>
       <div id="gf_teste_res" style="font-size:12.5px;margin-top:8px;line-height:1.6"></div>
     </div></section>
-    <button class="concluir-btn" onclick="concluirAbordagem()">✓ Concluir abordagem</button>
   </div>
 
   <!-- ===== EQUIPE ===== -->
@@ -517,10 +521,9 @@
   <div class="tabpane" id="tab_ocorr">
     <section><div class="sec-body" style="padding-top:14px">
       <div class="tm-row">
-        <button class="tm-btn" id="oc_start" onclick="iniciar('oc')">▶ Iniciar cronômetro</button>
-        <div class="tm-live"><span id="oc_timer">00:00</span></div>
+        <div class="tm-live">⏱ <span id="oc_timer">00:00</span></div>
       </div>
-      <div class="lock-msg" id="oc_aviso">🔒 Toque em <b>Iniciar cronômetro</b> para liberar o preenchimento.</div>
+      <div class="hint" id="oc_aviso">O tempo começa a contar sozinho no primeiro campo que você preencher.</div>
     </div></section>
     <section><div class="sec-head"><h2>1 · Envolvidos (partes)</h2></div><div class="sec-body">
       <div class="bo-imp">
@@ -697,7 +700,7 @@
         <button class="tm-btn" id="op_start" onclick="iniciar('op')">▶ Iniciar cronômetro</button>
         <div class="tm-live"><span id="op_timer">00:00</span></div>
       </div>
-      <div class="lock-msg" id="op_aviso">🔒 Toque em <b>Iniciar cronômetro</b> para liberar o preenchimento. Ao iniciar, o que já estiver preenchido nas outras abas vem sozinho.</div>
+      <div class="hint" id="op_aviso">Ao iniciar, o que já estiver preenchido nas outras abas vem sozinho.</div>
     </div></section>
 
     <section><div class="sec-head"><h2>Formulário</h2></div><div class="sec-body">
@@ -951,7 +954,7 @@
     if(f.calc==='total')oin='inputmode="numeric" oninput="build()"';
     if(f.type==='textarea')return '<div class="field"><label>'+f.label+'</label><textarea data-k="'+f.k+'" '+oin+(f.ph?' placeholder="'+f.ph+'"':'')+'></textarea></div>';
     if(f.type==='select'){var o=f.options.map(function(x){return '<option value="'+x+'">'+(x||'—')+'</option>'}).join('');
-      return '<div class="field"><label>'+f.label+'</label><select data-k="'+f.k+'" onchange="build()">'+o+'</select></div>'}
+      return '<div class="field"><label>'+f.label+'</label><select data-k="'+f.k+'" onchange="'+(f.chg||'build()')+'">'+o+'</select></div>'}
     if(f.type==='checks'){var c=f.options.map(function(x){return '<label class="ckbox"><input type="checkbox" data-k="'+f.k+'" value="'+x+'" onchange="build()"> '+x+'</label>'}).join('');
       return '<div class="field"><label>'+f.label+'</label><div class="checks">'+c+'</div></div>'}
     if(f.type==='estado')return '<div class="field"><label>'+f.label+'</label><input type="text" data-k="'+f.k+'" list="estados_dl" '+oin+(f.ph?' placeholder="'+f.ph+'"':'')+'></div>';
@@ -982,7 +985,8 @@
 
   /* ---- seções repetíveis genéricas ---- */
   var DEFS={
-    abordado:[{k:'cpf',label:'CPF',mask:'cpf'},{k:'nome',label:'Nome'},{k:'mae',label:'Mãe'},{k:'pai',label:'Pai'},{k:'nasc',label:'Data de nascimento',type:'date'},{k:'end',label:'Endereço'},{k:'local',label:'Local da abordagem',after:'<button type="button" class="gps-btn" onclick="gpsFind(this)">📍 Buscar por GPS</button><div class="gps-box"></div>'},{k:'hora',label:'Horário',type:'time'},{k:'passagem',label:'HISTÓRICO CRIMINAL:',type:'select',options:['','SIM','NÃO']},{k:'natural',label:'Naturalidade (Estado)',type:'estado',ph:'Digite ou escolha o estado'}],
+    abd_veic:[{k:'prop',label:'Nome do Proprietário'},{k:'placa',label:'Placa'},{k:'chassi',label:'Chassi'},{k:'marcamod',label:'Marca e Modelo'},{k:'anofabmod',label:'Ano de Fabricação/Modelo',ph:'2006/2007'},{k:'cor',label:'Cor'},{k:'sitcrim',label:'Situação criminal',type:'select',options:['','Não','Sim'],chg:'veicSitCrim(this)'}],
+    abordado:[{k:'cpf',label:'CPF',mask:'cpf'},{k:'nome',label:'Nome'},{k:'mae',label:'Mãe'},{k:'pai',label:'Pai'},{k:'nasc',label:'Data de nascimento',type:'date',calc:'idade'},{k:'idade',label:'Idade',type:'num'},{k:'end',label:'Endereço'},{k:'local',label:'Local da abordagem',after:'<button type="button" class="gps-btn" onclick="gpsFind(this)">📍 Buscar por GPS</button><div class="gps-box"></div>'},{k:'hora',label:'Horário',type:'time'},{k:'passagem',label:'HISTÓRICO CRIMINAL:',type:'select',options:['','SIM','NÃO']},{k:'natural',label:'Naturalidade (Estado)',type:'estado',ph:'Digite ou escolha o estado'},{k:'procurado',label:'Procurado',type:'select',options:['','Não','Sim'],chg:'abdProcurado(this)'}],
     animais:[{k:'proto',label:'Protocolo nº'},{k:'vtr',label:'Viatura'},{k:'orgao',label:'Órgão solicitante',type:'select',options:['','CETEL','DEPAVE']},{k:'qtd',label:'Quantidade'},{k:'cond',label:'Condição',type:'checks',options:['Atropelado','Eletrocutado','Com filhotes','Órfão','Ferido/Doente']},{k:'encontro',label:'Local de encontro',type:'select',options:['','Interior da residência','Quintal','Condomínio','Empresa','Loja','Via pública','Outros']},{k:'entrega',label:'Local de entrega',type:'select',options:['','CEMACAS','DEPAVE 03','Sala de manejo','IDAM','Outros']},{k:'resp',label:'Responsável pelo recebimento'},{k:'resptipo',label:'Tipo',type:'select',options:['','AGPP','Veterinário','Bióloga','GCM']},{k:'obs',label:'Observações',type:'textarea'}],
     op_efet:[{k:'comando',label:'Comando'},{k:'unidade',label:'Unidade'},{k:'data',label:'Data',type:'date'},{k:'horai',label:'Hora I',type:'time'},{k:'horaf',label:'Hora F',type:'time'},{k:'cdte',label:'CDTE',type:'num',sum:1},{k:'ia',label:'IA',type:'num',sum:1},{k:'cr',label:'CR',type:'num',sum:1},{k:'id',label:'ID',type:'num',sum:1},{k:'insp',label:'INSP',type:'num',sum:1},{k:'si',label:'SI',type:'num',sum:1},{k:'cd',label:'CD',type:'num',sum:1},{k:'ce',label:'CE',type:'num',sum:1},{k:'gcm',label:'GCM',type:'num',sum:1},{k:'total',label:'TOTAL (soma sozinho)',type:'num',calc:'total'}],
     op_falta_efet:[{k:'comando',label:'Comando'},{k:'unidade',label:'Unidade'},{k:'data',label:'Data',type:'date'},{k:'horai',label:'Hora I',type:'time'},{k:'horaf',label:'Hora F',type:'time'},{k:'cdte',label:'CDTE',type:'num',sum:1},{k:'ia',label:'IA',type:'num',sum:1},{k:'cr',label:'CR',type:'num',sum:1},{k:'id',label:'ID',type:'num',sum:1},{k:'insp',label:'INSP',type:'num',sum:1},{k:'si',label:'SI',type:'num',sum:1},{k:'cd',label:'CD',type:'num',sum:1},{k:'ce',label:'CE',type:'num',sum:1},{k:'gcm',label:'GCM',type:'num',sum:1},{k:'total',label:'TOTAL (soma sozinho)',type:'num',calc:'total'}],
@@ -991,7 +995,7 @@
     op_ocorr:[{k:'orgao',label:'Órgão condutor'},{k:'data',label:'Data',type:'date'},{k:'dpbops',label:'DP / BO / PS'},{k:'codigo',label:'Código'},{k:'desc',label:'Descriminar ocorrência',type:'textarea'}],
     op_apre:[{k:'produto',label:'Produto'},{k:'qtd',label:'Quantidade'},{k:'peso',label:'Peso'},{k:'laudo',label:'Nº laudo / lacre'},{k:'boguia',label:'BO / Termo / Guia'},{k:'dest',label:'DP / SRF / PF / PMSP'}],
     op_orgaos:[{k:'orgao',label:'Órgão'},{k:'data',label:'Data',type:'date'},{k:'horai',label:'Hora I',type:'time'},{k:'horaf',label:'Hora F',type:'time'},{k:'resp',label:'Responsável'},{k:'doc',label:'Documento'},{k:'recursos',label:'Recursos'}],
-    veiculos:[{k:'marca',label:'Marca'},{k:'modelo',label:'Modelo'},{k:'placa',label:'Placa'},{k:'tipo',label:'Tipo'},{k:'apreendido',label:'Apreendido',type:'select',options:['','Não','Sim']}],
+    veiculos:[{k:'marca',label:'Marca'},{k:'modelo',label:'Modelo'},{k:'placa',label:'Placa'},{k:'tipo',label:'Tipo'},{k:'apreendido',label:'Apreendido',type:'select',options:['','Não','Sim']},{k:'chassi',label:'Chassi'},{k:'cor',label:'Cor'},{k:'anofabmod',label:'Ano de Fabricação/Modelo'},{k:'prop',label:'Proprietário'}],
     entorpecentes:[{k:'tipo',label:'Tipo'},{k:'qtd',label:'Quantidade'},{k:'obs',label:'Observações',type:'textarea'}],
     moedas:[{k:'tipo',label:'Tipo'},{k:'qtd',label:'Quantidade'},{k:'obs',label:'Observações',type:'textarea'}],
     armas:[{k:'tipo',label:'Tipo'},{k:'especie',label:'Espécie'},{k:'marca',label:'Marca'},{k:'modelo',label:'Modelo'},{k:'calibre',label:'Calibre'},{k:'num',label:'Numeração'},{k:'qtd',label:'Quantidade'},{k:'obs',label:'Observações',type:'textarea'}],
@@ -999,7 +1003,7 @@
     produtos:[{k:'tipo',label:'Tipo',type:'select',options:['','OUTROS','ELETRÔNICO','DOCUMENTO','FERRAMENTA','VESTUÁRIO','JOIA','OUTRO']},{k:'qtd',label:'Quantidade'},{k:'obs',label:'Observações',type:'textarea',ph:'Ex.: CELULAR ROUBADO SAMSUNG A15'}]
   };
   var SEGTIT={op_efet:'Linha',op_falta_efet:'Linha',op_meios:'Linha',op_falta_meios:'Linha',
-              op_ocorr:'Ocorrência',op_apre:'Item apreendido',op_orgaos:'Órgão'};
+              op_ocorr:'Ocorrência',op_apre:'Item apreendido',op_orgaos:'Órgão',abd_veic:'Veículo'};
   var SEG={};Object.keys(DEFS).forEach(function(n){SEG[n]={ids:[]}});
   function toggleSeg(name){
     var on=document.getElementById('has_'+name).checked;
@@ -1016,15 +1020,174 @@
       '<div class="ocr-status"></div><div class="ocr2-status"></div><img class="ocr-prev fprev">'+
       '<details class="ocr-det"><summary>Ver texto lido pela foto</summary><div class="ocr-raw"></div></details></div>';
   }
+  /* A consulta de veículo não cabe num print só: os dados do veículo, o
+     proprietário e o chassi ficam em telas diferentes. Aqui pode mandar
+     todos de uma vez — cada campo é preenchido pelo primeiro print que o
+     tiver, e print nenhum apaga o que outro já achou. */
+  function ocrVeicWidget(){
+    return '<div class="ocr"><label>Preencher pelos prints da consulta (mande quantos precisar)</label>'+
+      '<div class="hint">Vale o print da tela de consulta de veículo. Pode mandar o do proprietário, o dos dados do veículo e o do chassi juntos — o app junta tudo num veículo só.</div>'+
+      '<input type="file" accept="image/*" multiple onchange="veicRead(this)">'+
+      '<label class="ckbox" style="margin-top:6px"><input type="checkbox" class="ocr-over"> Substituir campos já preenchidos</label>'+
+      '<div class="ocr-status"></div><img class="ocr-prev fprev">'+
+      '<details class="ocr-det"><summary>Ver texto lido pelos prints</summary><div class="ocr-raw"></div></details></div>';
+  }
   function segAdd(name){
     var id=name+uid();SEG[name].ids.push(id);
     var d=document.createElement('div');d.className='gblock';d.id=id;
     var title=SEGTIT[name]||(name==='abordado'?'Abordado':'Registro');
     var head='<button class="del" onclick="segDel(\''+name+'\',\''+id+'\')">×</button><p class="grp-title">'+title+' '+SEG[name].ids.length+'</p>';
-    var ocr=name==='abordado'?ocrWidget():'';
+    var ocr=name==='abordado'?ocrWidget():(name==='abd_veic'?ocrVeicWidget():'');
     d.innerHTML=head+ocr+defsHTML(DEFS[name]);
     document.getElementById('seg_'+name).appendChild(d);build();
   }
+  /* ============ ABERTURA AUTOMÁTICA DE R.O. ============
+     Dois gatilhos usam o mesmo caminho: veículo com situação criminal
+     (L01 · Auto Localizado) e abordado procurado (J13 · Captura de
+     Procurado). Regra que vale para os dois: só preenche campo VAZIO. Se
+     você já tinha lançado alguma coisa no R.O., nada é sobrescrito — ele
+     avisa o que deixou intacto. */
+
+  function roStatus(sel){
+    var f=sel.closest('.field'),st=f.querySelector('.ro-status');
+    if(!st){st=document.createElement('div');st.className='ro-status hint';st.style.marginTop='6px';f.appendChild(st)}
+    return st;
+  }
+
+  /* Local da ocorrência a partir do local da abordagem. Quando vem só o nome
+     da rua, sem CEP, procura o CEP na internet pelo logradouro e completa
+     bairro, cidade e CEP. Assume São Paulo, que é a área da GCM. */
+  function roBuscaCEP(loc,st){
+    var rua=String(loc||'').split(',')[0].trim()
+      .replace(/^R\.?\s+/i,'Rua ').replace(/^AV\.?\s+/i,'Avenida ')
+      .replace(/^AL\.?\s+/i,'Alameda ').replace(/^PC\.?\s+/i,'Praça ')
+      .replace(/^TV\.?\s+/i,'Travessa ');
+    if(rua.replace(/[^A-Za-zÀ-ÿ]/g,'').length<4)return;
+    var cep=document.getElementById('f_cep');
+    if(cep&&cep.value)return;
+    fetch('https://viacep.com.br/ws/SP/Sao%20Paulo/'+encodeURIComponent(rua)+'/json/')
+      .then(function(r){return r.json()})
+      .then(function(j){
+        if(!Array.isArray(j)||!j.length)return;
+        var a=j[0];
+        if(cep&&!cep.value&&a.cep)cep.value=a.cep;
+        var b=document.getElementById('f_bairro');if(b&&!b.value&&a.bairro)b.value=a.bairro;
+        var c=document.getElementById('f_cidade');if(c&&!c.value&&a.localidade)c.value=a.localidade+(a.uf?'/'+a.uf:'');
+        build();
+        if(st)st.textContent+=' CEP '+(a.cep||'')+' e bairro completados pelo logradouro'+
+          (j.length>1?' (a rua tem '+j.length+' trechos — confira o número)':'')+'.';
+      }).catch(function(){});
+  }
+
+  function roAbrir(cfg){
+    var feito=[],jaTinha=[];
+    function põe(id,val,rot){
+      if(!val)return;
+      var el=document.getElementById(id);if(!el)return;
+      if(el.value){jaTinha.push(rot);return}
+      el.value=val;feito.push(rot);
+    }
+
+    põe('f_nat',cfg.nat,'Natureza');
+    põe('f_codigo',cfg.codigo,'Código');
+
+    var ta=document.getElementById('f_tipoatend');
+    if(ta&&!ta.value){ta.value='Policial';toggleTipo();feito.push('Ocorrência policial')}
+    else if(ta&&ta.value!=='Policial')jaTinha.push('Tipo de atendimento');
+
+    /* local e horário saem da abordagem */
+    var ab=cfg.ab||{},loc=ab.local||'',hora=ab.hora||'';
+    if(!loc||!hora)segObjs('abordado').forEach(function(a){
+      if(!loc&&a.local)loc=a.local;if(!hora&&a.hora)hora=a.hora;
+    });
+    var locEl=document.getElementById('f_local'),locNovo=false;
+    if(loc&&locEl){
+      if(locEl.value)jaTinha.push('Local da ocorrência');
+      else{locEl.value=loc;feito.push('Local da ocorrência');locNovo=true}
+    }
+    if(hora){
+      var dt=document.getElementById('f_dt');
+      if(dt&&!dt.value){
+        var d=new Date();
+        dt.value=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)+'T'+hora;
+        feito.push('Data e hora');
+      }else if(dt)jaTinha.push('Data e hora');
+    }
+
+    /* veículo no bloco de veículos do R.O. */
+    var vei=cfg.vei;
+    if(vei){
+      var marca='',modelo='';
+      if(vei.marcamod){
+        var b=vei.marcamod.split('/');
+        marca=b.shift().trim();modelo=b.join('/').trim();
+        if(!modelo){modelo=marca;marca=''}
+      }
+      var cx=document.getElementById('has_veiculos');
+      if(cx&&!cx.checked){cx.checked=true;toggleSeg('veiculos')}
+      if(!SEG['veiculos'].ids.length)segAdd('veiculos');
+      var vb=document.getElementById(SEG['veiculos'].ids[SEG['veiculos'].ids.length-1]);
+      if(vb){
+        var mapa={marca:marca,modelo:modelo,placa:vei.placa,chassi:vei.chassi,
+                  cor:vei.cor,anofabmod:vei.anofabmod,prop:vei.prop},pv=0;
+        Object.keys(mapa).forEach(function(k){
+          if(!mapa[k])return;
+          var el=vb.querySelector('[data-k="'+k+'"]');
+          if(el&&!el.value){el.value=mapa[k];pv++}
+        });
+        if(pv)feito.push('Veículo no R.O.');
+      }
+    }
+
+    /* abordado como Autor */
+    if(ab&&ab.nome){
+      var jaLa=readPartes().some(function(p){
+        return p.nome&&p.nome.toUpperCase().trim()===String(ab.nome).toUpperCase().trim();
+      });
+      if(jaLa)jaTinha.push('Autor (já estava nas partes)');
+      else{
+        addParte();
+        var pb=document.getElementById(PARTES[PARTES.length-1]);
+        var mp={qual:'Autor',nome:ab.nome,cpf:ab.cpf,nasc:ab.nasc,idade:ab.idade,
+                mae:ab.mae,pai:ab.pai,endres:ab.end};
+        Object.keys(mp).forEach(function(k){
+          if(!mp[k])return;
+          var el=pb.querySelector('[data-k="'+k+'"]');
+          if(el&&!el.value)el.value=mp[k];
+        });
+        /* idade não veio da abordagem: calcula pelo nascimento */
+        var iEl=pb.querySelector('[data-k="idade"]'),nEl=pb.querySelector('[data-k="nasc"]');
+        if(iEl&&!iEl.value&&nEl&&nEl.value)calcIdadeBlk(nEl);
+        feito.push('Abordado como Autor');
+      }
+    }
+
+    build();
+    var st=cfg.st;
+    var msg=feito.length?('R.O. de '+cfg.rot+' iniciado — '+feito.join(', ')+'. Confira na aba Ocorrência.')
+                        :'O R.O. já estava preenchido; não mexi em nada.';
+    if(jaTinha.length)msg+=' Não sobrescrevi: '+jaTinha.join(', ')+'.';
+    if(st){st.textContent=msg;st.style.color=feito.length?'var(--ok)':'var(--warn)'}
+    if(locNovo)roBuscaCEP(loc,st);
+  }
+
+  function veicSitCrim(sel){
+    build();
+    var st=roStatus(sel);
+    if(sel.value!=='Sim'){st.textContent='';return}
+    roAbrir({nat:'L01 - AUTO LOCALIZADO',codigo:'L01',rot:'Auto Localizado',
+             vei:readDefs(sel.closest('.gblock'),DEFS.abd_veic),
+             ab:segObjs('abordado')[0],st:st});
+  }
+
+  function abdProcurado(sel){
+    build();
+    var st=roStatus(sel);
+    if(sel.value!=='Sim'){st.textContent='';return}
+    roAbrir({nat:'J13 - CAPTURA DE PROCURADO',codigo:'J13',rot:'Captura de Procurado',
+             ab:readDefs(sel.closest('.gblock'),DEFS.abordado),st:st});
+  }
+
   function segDel(name,id){var el=document.getElementById(id);if(el)el.remove();SEG[name].ids=SEG[name].ids.filter(function(x){return x!==id});build()}
   function segObjs(name){
     return SEG[name].ids.map(function(id){var el=document.getElementById(id);if(!el)return null;
@@ -1181,6 +1344,121 @@
       loadTesseract(arranca,function(){st.textContent='Não consegui carregar o leitor. Verifique a internet e tente de novo.';st.style.color='var(--warn)'});
     }else arranca();
   }
+  /* ================= CONSULTA DE VEÍCULO =================
+     Os prints da consulta vêm em tela escura: letra clara sobre fundo preto.
+     O Tesseract lê isso muito mal, então a imagem é medida e invertida antes
+     de ir para o leitor. Depois disso é print de tela limpo, e a leitura é
+     por rótulo — "Chassi:", "Cor:" — o que dispensa adivinhação. */
+  function veicPrep(file,cb){
+    var img=new Image();
+    img.onload=function(){
+      try{
+        var w=img.naturalWidth||img.width,h=img.naturalHeight||img.height;
+        var sc=Math.max(1,Math.min(2.5,1600/Math.min(w,h)));
+        var cw=Math.round(w*sc),ch=Math.round(h*sc),MAXP=4000*4000;
+        if(cw*ch>MAXP){var r=Math.sqrt(MAXP/(cw*ch));cw=Math.round(cw*r);ch=Math.round(ch*r)}
+        var c=document.createElement('canvas');c.width=cw;c.height=ch;
+        var x=c.getContext('2d',{willReadFrequently:true});
+        x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';
+        x.drawImage(img,0,0,cw,ch);
+        var d=x.getImageData(0,0,cw,ch),p=d.data,n=cw*ch,soma=0,passo=Math.max(1,(n/30000)|0),lidos=0;
+        for(var i=0;i<n;i+=passo){soma+=(p[i*4]*0.299+p[i*4+1]*0.587+p[i*4+2]*0.114);lidos++}
+        if(lidos&&soma/lidos<110){                       /* tela escura: inverte */
+          for(var k=0;k<p.length;k+=4){p[k]=255-p[k];p[k+1]=255-p[k+1];p[k+2]=255-p[k+2]}
+          x.putImageData(d,0,0);
+        }
+        cb(c);
+      }catch(e){cb(null)}
+    };
+    img.onerror=function(){cb(null)};
+    try{img.src=URL.createObjectURL(file)}catch(e){cb(null)}
+  }
+
+  /* Pega o valor de um rótulo. Exige os dois-pontos e âncora no começo da
+     linha — é o que separa "Cor: AZUL" de "Código da Cor: 2", e "Placa:" da
+     "Placa Pré-Mercosul:" e do rótulo solto do campo de busca. */
+  function veicRot(txt,rots){
+    for(var i=0;i<rots.length;i++){
+      var m=txt.match(new RegExp('(?:^|\\n)[^\\S\\n]*'+rots[i]+'[^\\S\\n]*:[^\\S\\n]*([^\\n]*)','i'));
+      if(m&&m[1].trim())return m[1].trim().replace(/\s{2,}/g,' ');
+    }
+    return '';
+  }
+  function veicParse(txt){
+    var t=String(txt||'').replace(/\r/g,'');
+    var o={};
+    o.prop     =veicRot(t,['Nome','Propriet[áa]rio']);
+    o.placa    =veicRot(t,['Placa']).toUpperCase().replace(/[^A-Z0-9]/g,'');
+    o.chassi   =veicRot(t,['Chassi','Chassis']).toUpperCase().replace(/[^A-Z0-9]/g,'');
+    o.marcamod =veicRot(t,['Marca e Modelo','Marca\\/Modelo']);
+    o.cor      =veicRot(t,['Cor']);
+    var fab=veicRot(t,['Ano de Fabrica[çc][ãa]o','Ano Fabrica[çc][ãa]o']).replace(/\D/g,'').slice(0,4);
+    var mod=veicRot(t,['Ano do Modelo','Ano Modelo']).replace(/\D/g,'').slice(0,4);
+    o.anofabmod=(fab||mod)?((fab||'—')+'/'+(mod||'—')):'';
+    /* placa só vale com 7 caracteres; menos que isso é leitura pela metade */
+    if(o.placa.length!==7)o.placa='';
+    if(o.chassi.length<15)o.chassi='';
+    return o;
+  }
+
+  var VEIC_ROT={prop:'Proprietário',placa:'Placa',chassi:'Chassi',
+                marcamod:'Marca e Modelo',anofabmod:'Ano de Fabricação/Modelo',cor:'Cor'};
+
+  function veicRead(input){
+    var fs=input.files?Array.prototype.slice.call(input.files):[];
+    if(!fs.length)return;
+    var blk=input.closest('.gblock');
+    var st=blk.querySelector('.ocr-status'),raw=blk.querySelector('.ocr-raw');
+    var prev=blk.querySelector('.ocr-prev');
+    try{prev.src=URL.createObjectURL(fs[0]);prev.style.display='block'}catch(e){}
+    st.style.color='var(--muted)';
+    var over=blk.querySelector('.ocr-over'),subst=!!(over&&over.checked);
+    var junto={},textos=[];
+
+    function aplica(){
+      if(raw)raw.textContent=textos.join('\n\n———\n\n');
+      var postos=[],pulados=[];
+      Object.keys(VEIC_ROT).forEach(function(k){
+        if(!junto[k])return;
+        var el=blk.querySelector('[data-k="'+k+'"]');
+        if(!el)return;
+        if(el.value&&!subst){pulados.push(VEIC_ROT[k]);return}
+        el.value=junto[k];postos.push(VEIC_ROT[k]);
+      });
+      build();
+      if(!postos.length){
+        st.textContent='Não reconheci nenhum campo do veículo.'+
+          (pulados.length?' Já estavam preenchidos: '+pulados.join(', ')+'.':' Confira se os rótulos aparecem inteiros no print.');
+        st.style.color='var(--warn)';return;
+      }
+      var msg='Preenchido: '+postos.join(', ')+'.';
+      if(pulados.length)msg+=' Não sobrescrevi: '+pulados.join(', ')+'.';
+      var faltam=Object.keys(VEIC_ROT).filter(function(k){
+        var el=blk.querySelector('[data-k="'+k+'"]');return el&&!el.value;
+      }).map(function(k){return VEIC_ROT[k]});
+      if(faltam.length)msg+=' Ainda em branco: '+faltam.join(', ')+' — mande o print dessa parte ou lance à mão.';
+      st.textContent=msg;st.style.color='var(--ok)';
+    }
+
+    function vai(i){
+      if(i>=fs.length){aplica();return}
+      st.textContent='Lendo print '+(i+1)+' de '+fs.length+'…';
+      veicPrep(fs[i],function(cv){
+        ocrOnce(cv||fs[i],st,'veículo '+(i+1)).then(function(t){
+          textos.push(t||'');
+          var p=veicParse(t||'');
+          Object.keys(p).forEach(function(k){if(p[k]&&!junto[k])junto[k]=p[k]});
+          vai(i+1);
+        });
+      });
+    }
+    function arranca(){vai(0)}
+    if(typeof Tesseract==='undefined'){
+      st.textContent='Carregando o leitor (precisa de internet, só na 1ª vez)…';
+      loadTesseract(arranca,function(){st.textContent='Não consegui carregar o leitor. Verifique a internet e tente de novo.';st.style.color='var(--warn)'});
+    }else arranca();
+  }
+
   function preprocess(file,cb){
     var img=new Image();
     img.onload=function(){
@@ -2447,7 +2725,7 @@
      Estrutura: cabeçalho GRUPO TÁTICO n, depois a O.S., depois as guarnições
      (ENC / MOT / AUX...). Guarnição nova começa a cada ENC. O grupo tático
      termina quando aparece a próxima ordem de serviço. */
-  var RE_RF_E   =/(\d{3})[.\s]?(\d{3})[.\s]?(\d{1,3})\b/;
+  var RE_RF_E   =/(\d{3})[.\s]{0,2}(\d{3})[.\s]{0,2}(\d{1,3})\b/;
   /* o "/" da escala sai como I, l, |, \ — e o h do turno vira n, w ou some
      de vez ("CE 10260 10/22"). O ponto antes do número exclui o RF partido
      ("709.058.7/00"), que senão viraria turno. */
@@ -2704,7 +2982,8 @@
     /* "SIPINEZ", "CELUCIANO", "CEKIKUCHI": a graduação gruda no nome quando o
        espaço da tabela some. Só separa quando sobram 4+ letras depois dela e a
        linha já tem RF — assim um nome legítimo como CESAR não é partido. */
-    if(r.rf)dep=dep.replace(/\b(CE|SI|SL|SUB|CD|INSP)([A-ZÀ-Ý]{4,})\b/g,'$1 $2');
+    if(r.rf)dep=dep.replace(/\b(CE|SI|SL|SUB|CD|INSP)([A-ZÀ-Ý]{4,})\b/g,'$1 $2')
+                   .replace(/\b(CE|SI|SL|SUB|CD|INSP)([A-Z]\.)/g,'$1 $2');
     if(r.pref&&pr&&dep.indexOf(pr[0])>=0)dep=dep.replace(pr[0],' ');
     if(r.turno&&t&&dep.indexOf(t[0])>=0)dep=dep.replace(t[0],' ');
     dep=dep.replace(/\b\d{3,5}\b/g,' ').replace(/\s{2,}/g,' ').trim();
@@ -2784,7 +3063,34 @@
      ficam ENC./MOT./AUX. A escala tem ordem fixa — encarregado, motorista,
      auxiliares — e as guarnições são separadas por um espaço maior entre as
      linhas. Dá para reconstruir por posição. */
+  /* O turno é uma célula MESCLADA nas três linhas da guarnição, então o
+     leitor a devolve na linha do meio — a do motorista. Isso é um marco
+     confiável: cada turno lido marca o centro de uma guarnição, e ela é a
+     linha de cima (ENC), a do turno (MOT) e a de baixo (AUX). Só vale quando
+     os marcos cobrem todas as linhas sem sobrar nem sobrepor; qualquer
+     folga e o agrupamento antigo, por espaçamento, assume. */
+  function escPorTurno(ags){
+    var anc=[];
+    ags.forEach(function(a,i){if(a&&a.turno)anc.push(i)});
+    if(anc.length<2)return null;
+    var blocos=[],usado={},ok=true;
+    anc.forEach(function(t){
+      var b=[];
+      [t-1,t,t+1].forEach(function(j){
+        if(j<0||j>=ags.length)return;
+        if(usado[j]){ok=false;return}
+        usado[j]=1;b.push(ags[j]);
+      });
+      if(b.length)blocos.push(b);
+    });
+    if(!ok)return null;
+    for(var i=0;i<ags.length;i++)if(!usado[i])return null;
+    return blocos;
+  }
+
   function escPorPosicao(ags){
+    var porTurno=escPorTurno(ags);
+    if(porTurno)return porTurno;
     var difs=[];
     for(var i=1;i<ags.length;i++){var d=(ags[i]._y||0)-(ags[i-1]._y||0);if(d>0)difs.push(d)}
     if(!difs.length)return [ags];
@@ -2885,7 +3191,9 @@
     if(todos.length>=3 && comFunc<todos.length*0.5){
       todos.sort(function(a,b){return (a._y||0)-(b._y||0)});
       var novas=escPorPosicao(todos).map(function(gr){
-        return {pref:(gr[0]&&gr[0].pref)||'', turno:'', enc:gr[0]||null, mot:gr[1]||null, aux:gr.slice(2)};
+        var comT=gr.filter(function(x){return x&&x.turno})[0];
+        return {pref:(gr[0]&&gr[0].pref)||'', turno:(comT&&comT.turno)||'',
+                enc:gr[0]||null, mot:gr[1]||null, aux:gr.slice(2)};
       });
       if(novas.length){
         var alvo=gts[gts.length-1]||{grupo:'',os:'',desc:'',guarnicoes:[]};
@@ -3584,6 +3892,11 @@
     var pp=readPartes();
     pp.forEach(function(p,i){h+=partePrint(p,i+1)});
 
+    var vei=segObjs('abd_veic');
+    if(vei.length){h+='<div class="band">Abordagem — veículos</div>';
+      vei.forEach(function(o,i){var rows='';DEFS.abd_veic.forEach(function(d){if(o[d.k]&&String(o[d.k]).trim())rows+='<tr><td class="lb" style="width:36%">'+d.label+'</td><td>'+esc(o[d.k])+'</td></tr>'});if(rows)h+='<div style="font-size:8px;font-weight:700;margin:2px 0 1px">Veículo '+(i+1)+'</div>'+T(rows)});
+    }
+
     var abd=segObjs('abordado');
     if(abd.length){h+='<div class="band">Abordagem — abordados</div>';
       abd.forEach(function(o,i){var rows='';DEFS.abordado.forEach(function(d){if(o[d.k]&&String(o[d.k]).trim())rows+='<tr><td class="lb" style="width:36%">'+d.label+'</td><td>'+esc(o[d.k])+'</td></tr>'});if(rows)h+='<div style="font-size:8px;font-weight:700;margin:2px 0 1px">Abordado '+(i+1)+'</div>'+T(rows)});
@@ -4249,7 +4562,17 @@
 
   /* ---- trava: só libera os campos depois de iniciar o cronômetro ---- */
   var PANEID={ab:'tab_abord',oc:'tab_ocorr',op:'tab_oper'};
+  /* ---- trava desativada: os campos ficam editáveis desde o início ----
+     A função continua existindo porque várias partes do app a chamam depois
+     de concluir ou limpar. Agora ela só garante que nada fique desabilitado
+     e esconde o aviso antigo. */
   function lockTab(k,on){
+    var pane=document.getElementById(PANEID[k]);if(!pane)return;
+    pane.querySelectorAll('input,select,textarea,button').forEach(function(el){el.disabled=false});
+    var av=document.getElementById(k+'_aviso');
+    if(av&&av.classList.contains('lock-msg'))av.style.display='none';
+  }
+  function lockTabAntigo(k,on){
     var pane=document.getElementById(PANEID[k]);if(!pane)return;
     pane.querySelectorAll('input,select,textarea,button').forEach(function(el){
       if(el.closest('.tm-row'))return;
@@ -4262,12 +4585,13 @@
     var av=document.getElementById(k+'_aviso');
     if(av)av.style.display=on?'block':'none';
   }
-  function lockAll(){lockTab('ab',true);lockTab('oc',true);lockTab('op',true)}
+  function lockAll(){lockTab('ab',false);lockTab('oc',false);lockTab('op',false)}
 
   /* ---- limpa a abordagem, mantendo área de patrulhamento e equipe ---- */
   function limparAbordagem(){
     var area=v('f_area'),eq=v('f_equipe');
     SEG['abordado'].ids.slice().forEach(function(id){segDel('abordado',id)});
+    SEG['abd_veic'].ids.slice().forEach(function(id){segDel('abd_veic',id)});
     segAdd('abordado');
     var st=document.getElementById('esc_status');
     document.querySelectorAll('#tab_abord .ocr-status').forEach(function(e){e.textContent='';});
@@ -4601,11 +4925,31 @@
     if(st){var run=TM.ab.run?TM.ab:(TM.oc.run?TM.oc:(TM.op.run?TM.op:null));st.textContent=run?fmtSecs((Date.now()-run.start)/1000):'00:00'}
   }
   function iniciar(k){var t=TM[k],e=tmEls(k);
+    if(t.run)return;                       /* já rodando: não reinicia do zero */
     t.start=Date.now();t.run=true;t.last=null;
-    if(t.tick)clearInterval(t.tick);t.tick=setInterval(function(){tmUpd(k)},1000);tmUpd(k);lockTab(k,false);
+    if(t.tick)clearInterval(t.tick);t.tick=setInterval(function(){tmUpd(k)},1000);tmUpd(k);
     if(k==='op')opAutoFill();
     if(e.btn){e.btn.textContent='⏱ Em andamento — toque para reiniciar';e.btn.classList.add('running')}
   }
+
+  /* O cronômetro sumiu da tela: nada mais é travado e não há botão de
+     iniciar. A contagem arranca sozinha no primeiro toque em qualquer campo
+     da aba e o total aparece na conclusão. Um só ouvinte no documento, na
+     fase de captura, pega input, digitação e clique em qualquer campo —
+     inclusive os que o app cria depois (abordado, veículo, parte). */
+  var TMPANE={tab_abord:'ab',tab_ocorr:'oc'};
+  function tmDispara(ev){
+    var el=ev.target;
+    if(!el||!el.closest)return;
+    if(!el.matches('input,select,textarea'))return;
+    var pane=el.closest('.tabpane');
+    if(!pane)return;
+    var k=TMPANE[pane.id];
+    if(k&&!TM[k].run)iniciar(k);
+  }
+  ['input','change'].forEach(function(ev){
+    document.addEventListener(ev,tmDispara,true);
+  });
   function pararTimer(k){var t=TM[k],e=tmEls(k),secs=0;
     if(t.run){secs=Math.round((Date.now()-t.start)/1000);t.last=secs}
     t.run=false;if(t.tick){clearInterval(t.tick);t.tick=null}
