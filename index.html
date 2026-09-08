@@ -330,7 +330,7 @@
 
 <header><div class="bar">
   <div class="shield">GCM</div>
-  <div><h1>Registro de Abordagens</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v37 · 03/09 separação das guarnições pelo turno</span></p></div>
+  <div><h1>Registro de Abordagens</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v42 · 05/09 lixo na margem do Detecta</span></p></div>
   <button class="app-btn" id="app_btn" onclick="appClick()" title="Instalar o aplicativo no celular"><span class="dot"></span><span class="lbl">App</span></button>
 </div></header>
 
@@ -1617,9 +1617,40 @@
     if(cur&&!over)return 'kept';
     el.value=val;return 'set';
   }
+  /* Linha que nunca é dado do abordado: barra de endereço do navegador,
+     domínio, cabeçalho e botão do site. Era daqui que vinha o endereço sair
+     como "artsampa.sentinelx.com.br". */
+  function ehLixoTela(l){
+    if(!l)return false;
+    if(/https?:\/\/|www\.|\.com\b|\.com\.br|\.gov\.br|\.org\b|\.net\b/i.test(l))return true;
+    if(/^\s*(buscar|pesquisar|limpar|voltar|menu|entrar|sair|compartilhar|copiar)\s*$/i.test(l))return true;
+    if(/detetive\s*forense|smart\s*sampa|prefeitura\s+de|sentinel/i.test(l))return true;
+    return false;
+  }
+
+  /* Confere o dígito verificador do CPF. Serve para escolher, entre os
+     dígitos soltos que a tela quebrou em duas linhas, quais 11 formam o
+     CPF de verdade. */
+  function cpfValido(d){
+    if(!/^\d{11}$/.test(d)||/^(\d)\1{10}$/.test(d))return false;
+    var s=0,i,r;
+    for(i=0;i<9;i++)s+=(+d[i])*(10-i);
+    r=(s*10)%11;if(r===10)r=0;if(r!==+d[9])return false;
+    s=0;for(i=0;i<10;i++)s+=(+d[i])*(11-i);
+    r=(s*10)%11;if(r===10)r=0;
+    return r===+d[10];
+  }
+
   function parseFields(text){
+    /* o layout do Detetive Forense não usa "Nome:" — o nome é o título da
+       tela, logo acima da linha "57 anos, nascido em 21/02/1969" */
+    var ehDF=/detetive\s*forense|\bnascid[oa]\s+em\s+\d{2}\/\d{2}\/\d{4}/i.test(text);
+    /* Detecta / "Pessoas - Físicas" (fonte RENACH): duas colunas, sem
+       dois-pontos, e tudo quebrando de linha. */
+    var ehDetecta=/PESSOAS?\s*[-–]\s*F[ÍI]SICAS|RESULTADO\s+DA\s+CONSULTA\s+DE\s+PES|FONTE\s*:?\s*RENACH|ESTRANGEIRO\s*\?|FILIA[ÇC][ÃA]O\s*1/i.test(text);
     var lines=text.split(/\n/).map(function(l){return l.replace(/\s+/g,' ').trim()});
     var used=new Array(lines.length);
+    lines.forEach(function(l,i){if(ehLixoTela(l)){lines[i]='';used[i]=true}});
     var KNOWN=/^\s*(?:\d{1,2}[).\-]\s*)?(NOME\s+DA\s+M[ÃA]E|NOME\s+DO\s+PAI|NOME\s+SOCIAL|NOME|DATA\s+DE\s+NASC\w*|DATA\s+NASC\w*|NASC\w*|DATA\s+DE\s+ATUALIZA\w*|DATA\s+DE\s+EXPED\w*|ANO\s+DE\s+EXERC\w*|ANO\s+DO\s+[ÓO]BITO|[ÓO]BITO|FILIA[ÇC][ÃA]O|FILHO\s+DE|C\.?\s?P\.?\s?F|R\.?\s?G|REGISTRO\s+GERAL|IDENTIDADE|DOCUMENTO|DOC\w*|ENDERE[ÇC]O|RESID\w*|LOGRADOURO|COMPLEMENTO|BAIRRO|MUNIC[ÍI]PIO|CIDADE|CEP|UF|M[ÃA]E|PAI|TELEFONE|CELULAR|SEXO|NATURALIDADE|OCUPA[ÇC][ÃA]O|ORG[ÃA]O|EXPED\w*|VALIDADE|CARGO|PESSOA|MANDADO|VE[ÍI]CULO)\b/i;
     function isLabel(l){return KNOWN.test(l)}
     function isNameLine(l){
@@ -1683,6 +1714,107 @@
       }
       return '';
     }
+    /* ---- Detetive Forense ----
+       O nome é o título da tela, sem rótulo nenhum, e cai logo acima da
+       linha "57 anos, nascido em 21/02/1969". O app ainda mostra "Nome da
+       Mãe" duas vezes — uma abreviada ("Irene m s Gomes") e uma completa —
+       então fica a mais longa das duas. Estas linhas são marcadas como
+       usadas, senão a busca genérica pegaria a mãe como se fosse o nome. */
+    var dfNome='',dfNasc='',dfMae='';
+    if(ehDF){
+      for(var di=0;di<lines.length;di++){
+        var mA=lines[di].match(/(\d{1,3})\s*anos?\s*,?\s*nascid[oa]\s+em\s+(\d{2}\/\d{2}\/\d{4})/i);
+        if(!mA)continue;
+        dfNasc=mA[2];used[di]=true;
+        var acima=[];
+        for(var dj=di-1;dj>=0&&acima.length<2;dj--){
+          if(used[dj])continue;
+          if(!lines[dj])continue;
+          if(!isNameLine(lines[dj]))break;
+          acima.unshift(lines[dj]);used[dj]=true;
+        }
+        dfNome=acima.join(' ');
+        break;
+      }
+      var cand=[];
+      lines.forEach(function(l,i){
+        if(used[i])return;
+        var m2=l.match(/^\s*NOME\s+DA\s+M[ÃA]E\s*[:：]\s*(\S.*)$/i);
+        if(m2&&m2[1].trim())cand.push({i:i,v:m2[1].trim()});
+      });
+      if(cand.length){
+        cand.sort(function(a,b){return b.v.length-a.v.length});
+        dfMae=cand[0].v;
+        cand.forEach(function(c){used[c.i]=true});
+      }
+    }
+
+    /* ---- Detecta / "Pessoas - Físicas" ----
+       Duas colunas, sem dois-pontos, e TUDO quebra de linha: o último
+       dígito do CPF cai na linha de baixo ("4014445780" / "6"), o rótulo
+       "Data de Nascimento" ocupa duas linhas, filiação com três nomes ocupa
+       três, e "SP/Taboão" continua em "Da Serra". Ler linha a linha aqui não
+       funciona. Então o texto vira uma fita só e cada campo é recortado
+       entre dois rótulos conhecidos — a quebra de linha simplesmente some. */
+    var dtNome='',dtCpf='',dtNasc='',dtMae='',dtPai='';
+    if(ehDetecta){
+      var fita=lines.map(function(l){return l.trim()}).join('\n');
+      /* a data de atualização é a única outra data da tela: sai da frente */
+      fita=fita.replace(/Data\s+[ÚU]ltima\s+Atualiza[çc][ãa]o/ig,' @ATU@ ');
+      var LIM='CPF|Data\\s+de|Nascimento|Sexo|UF\\s*\\/|Estrangeiro|Filia[çc][ãa]o|'+
+              'Profiss[ãa]o|Situa[çc][ãa]o|@ATU@|Restri[çc]|Receita\\s+Federal|BNMP|'+
+              'Condutor|CAD|BO\\s+Nacional|Fonte';
+      function corta(de,ate){
+        var m1=fita.match(new RegExp(de,'i'));
+        if(!m1)return '';
+        var resto=fita.slice(m1.index+m1[0].length);
+        var m2=resto.match(new RegExp(ate,'i'));
+        return (m2?resto.slice(0,m2.index):resto).replace(/[ \t]{2,}/g,' ').trim();
+      }
+      /* O lixo entra sempre pela ESQUERDA da linha — é a borda da tabela e a
+         coluna vizinha raspando na margem: "Ve | Não Fernanda", "AT Tozzi",
+         "à Não Maria", "MV | Não". Então descarta da frente enquanto for
+         pedaço de até duas letras, palavra sem vogal, sinal de pontuação ou
+         a resposta do lado. Para no primeiro pedaço com cara de nome, e a
+         partir dali não mexe em mais nada — é o que salva um "Ana" de três
+         letras e um "DE"/"DA" no meio do nome. */
+      function tiraEsq(v){
+        return String(v||'').split(/\n/).map(function(ln){
+          var t=ln.trim().split(/\s+/).filter(Boolean);
+          while(t.length){
+            var so=t[0].replace(/[^A-Za-zÀ-ÿ]/g,'');
+            /* "De Moura" e "Da Silva" começam linha de continuação: a
+               partícula tem duas letras mas é parte do nome, não lixo */
+            var part=/^(DE|DA|DO|DAS|DOS|DI|DU|E)$/i.test(so)&&t.length>1;
+            var lixo=!part&&(!so||so.length<=2||!/[AEIOUÁÂÃÀÉÊÍÓÔÕÚaeiouáâãàéêíóôõú]/.test(so)||
+                     /^(N[ÃA]O|SIM|MASCULINO|FEMININO|INFORMADO|REGULAR|PENDENTE)$/i.test(so));
+            if(!lixo)break;
+            t.shift();
+          }
+          return t.filter(function(w){return /[A-Za-zÀ-ÿ]/.test(w)}).join(' ');
+        }).filter(Boolean).join(' ').trim();
+      }
+      var PARA='\\b(?:'+LIM+')\\b';
+      dtNome=tiraEsq(corta('\\bNome\\b',PARA));
+
+      /* CPF: junta todos os dígitos do trecho e procura os 11 que fecham a
+         conta do dígito verificador — assim o "6" da linha de baixo entra */
+      var regCpf=corta('\\bCPF\\b','\\bSexo\\b')||corta('\\bCPF\\b',PARA);
+      var dig=(regCpf||fita).replace(/\d{2}\/\d{2}\/\d{4}/g,' ').replace(/\D/g,'');
+      for(var ci=0;ci+11<=dig.length;ci++){
+        if(cpfValido(dig.substr(ci,11))){dtCpf=dig.substr(ci,11);break}
+      }
+      if(!dtCpf&&dig.length>=11)dtCpf=dig.substr(0,11);
+
+      var regN=corta('Nascimento','\\b(?:Sexo|UF\\s*\\/|Estrangeiro|Filia[çc][ãa]o|Profiss[ãa]o|Situa[çc][ãa]o|@ATU@|Restri[çc])\\b');
+      var mdN=(regN.match(/\d{2}\/\d{2}\/\d{4}/)||regCpf.match(/\d{2}\/\d{2}\/\d{4}/)||[])[0];
+      if(mdN)dtNasc=mdN;
+
+      var PARAFIL='\\b(?:Profiss[ãa]o|Situa[çc][ãa]o|@ATU@|Restri[çc]|Fonte|RENACH|Receita\\s+Federal|BNMP)\\b';
+      dtMae=tiraEsq(corta('Filia[çc][ãa]o\\s*1','\\b(?:Filia[çc][ãa]o\\s*2)\\b|'+PARAFIL));
+      dtPai=tiraEsq(corta('Filia[çc][ãa]o\\s*2',PARAFIL));
+    }
+
     // rótulos mais específicos primeiro, e nomes acumulando linhas de continuação
     var mae=cleanName(grab('NOME\\s+DA\\s+M[ÃA]E|M[ÃA]E','name'));
     var pai=cleanName(grab('NOME\\s+DO\\s+PAI|PAI','name'));
@@ -1694,7 +1826,35 @@
     var tel=grab('TELEFONE|CELULAR');
     var bairro=grab('BAIRRO');
     var compl=grab('COMPLEMENTO\\s+DO\\s+LOGRADOURO|COMPLEMENTO');
-    if(!end){var pe=[];if(bairro)pe.push(bairro);if(compl&&!/^[0\s]*$/.test(compl))pe.push(compl);end=pe.join(' - ')}
+    var cep=grab('CEP');
+    var mun=grab('MUNIC[ÍI]PIO|CIDADE');
+    var natural=grab('NATURAL\\s+DE|NATURALIDADE');
+    if(end&&ehLixoTela(end))end='';
+    if(!end){
+      /* a consulta nem sempre traz o logradouro; então monta com o que tem,
+         descartando complemento vazio ("S/N", "0") que não diz nada sozinho */
+      var pe=[];
+      if(compl&&!/^[0\s]*$/.test(compl)&&!/^S\s*\/?\s*N\.?$/i.test(compl))pe.push(compl);
+      if(bairro)pe.push(bairro);
+      if(mun)pe.push(mun);
+      if(cep&&/\d{5}/.test(cep)){
+        var cd=cep.replace(/\D/g,'').slice(0,8);
+        if(cd.length===8)pe.push('CEP '+cd.slice(0,5)+'-'+cd.slice(5));
+      }
+      end=pe.join(' - ');
+    }
+    if(dfNome)nome=cleanName(dfNome);
+    if(dfMae)mae=cleanName(dfMae);
+    if(dfNasc)nascRaw=dfNasc;
+    /* O Detecta escreve em caixa mista; o restante do R.O. é em caixa alta */
+    if(dtNome)nome=cleanName(dtNome).toUpperCase();
+    if(dtMae)mae=cleanName(dtMae).toUpperCase();
+    if(dtPai)pai=cleanName(dtPai).toUpperCase();
+    if(dtNasc)nascRaw=dtNasc;
+    if(dtCpf)cpfRaw=dtCpf;
+    /* naturalidade vem como "SAO PAULO/SP": o campo do app quer o estado */
+    var uf=(natural||'').toUpperCase().match(/\b(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\b\s*$/);
+    var naturalVal=uf?uf[1]:'';
 
     var cpfSrc=(cpfRaw||text).toUpperCase();
     var cm=cpfSrc.match(/(\d{3})[.\s]?(\d{3})[.\s]?(\d{3})[-\s]?(\d{2})/);
@@ -1706,7 +1866,7 @@
     var tmatch=topText.match(/\b([01]?\d|2[0-3])\s?[:h.]\s?([0-5]\d)\b/);
     var horaVal=tmatch?((tmatch[1].length<2?'0':'')+tmatch[1]+':'+tmatch[2]):'';
 
-    return {nome:nome,mae:mae,pai:pai,cpf:cpfVal,nasc:nascVal,rg:rg,end:end,tel:tel,hora:horaVal};
+    return {nome:nome,mae:mae,pai:pai,cpf:cpfVal,nasc:nascVal,rg:rg,end:end,tel:tel,hora:horaVal,natural:naturalVal};
   }
 
   /* pontua o quanto um nome "parece" nome de verdade (para escolher entre 2 leituras) */
@@ -1775,6 +1935,7 @@
       }
     }
     go('rg',f.rg,'RG');
+    go('natural',f.natural,'Naturalidade');
     if(f.end){
       var st1=setK(blk,'end',f.end);if(st1==='skip')st1=setK(blk,'endres',f.end);
       if(st1==='set')found.push('Endereço');else if(st1==='kept')kept.push('Endereço');
@@ -2829,6 +2990,20 @@
     while(k<pal.length&&!/^[A-ZÀ-Ý]{3,}/i.test(pal[k]))k++;
     if(k>0&&k<=4&&k<pal.length)t=pal.slice(k).join(' ');
     t=t.replace(/\s\d\s(?=[A-ZÀ-Ý])/g,' ');            /* "SATURAÇÃO 4 PIRITUBA" */
+    /* As três leituras se sobrepõem e a fusão repete palavra: "OPERA
+       OPERAÇÃO ÃO SENTINELA SENTINELA SATURAÇÃO SATURAÇÃO BROOKLIN
+       BROOKLIN". Some a repetida, o começo de palavra que a seguinte
+       completa, e o pedaço de terminação que sobra solto. */
+    var ps=t.split(/\s+/),lim=[];
+    ps.forEach(function(w){
+      var a=lim[lim.length-1];
+      if(!a){lim.push(w);return}
+      if(a===w)return;
+      if(w.length>a.length&&w.indexOf(a)===0){lim[lim.length-1]=w;return}
+      if(w.length>=2&&w.length<=3&&a.length>w.length&&a.slice(-w.length)===w)return;
+      lim.push(w);
+    });
+    t=lim.join(' ');
     t=t.replace(/\bN[O0]\s+L[O0][CÇ]\w*\b/gi,'NO LOCAL');
     t=t.replace(/\bFREGUESIA\s+D[O0]\s*[6G0OÓ]?\b/gi,'FREGUESIA DO Ó');
     return t.replace(/\s{2,}/g,' ').trim();
@@ -2855,6 +3030,10 @@
       if(/^[123]\s*[ºO°]$/.test(w))return w[0]+'º';
       var sem=escSemAcento(w).replace(/[^A-ZÇ.]/g,'');
       if(POSTOS_E.indexOf(sem.replace(/\./g,''))>=0)return sem.replace(/\./g,'');
+      /* Acento isolado é nome de verdade (DURÃES, ANTÔNIO). Acento em série é
+         o leitor delirando ("LUCANOÀÀÚÀÚÔ", "NÃNÚÂÁÀÁÁAARÕN") — só aí corta. */
+      var ac=(w.match(new RegExp(RE_ACENTO_E.source,'g'))||[]).length;
+      if(ac<2&&ac/Math.max(1,w.length)<=0.3)return w.replace(/[^A-ZÀ-ÝÇ.]/g,'');
       var i=w.search(RE_ACENTO_E);
       return escSemAcento(i>=0?w.slice(0,i):w).replace(/[^A-ZÇ.]/g,'');
     }).filter(Boolean);
@@ -3063,28 +3242,26 @@
      ficam ENC./MOT./AUX. A escala tem ordem fixa — encarregado, motorista,
      auxiliares — e as guarnições são separadas por um espaço maior entre as
      linhas. Dá para reconstruir por posição. */
-  /* O turno é uma célula MESCLADA nas três linhas da guarnição, então o
-     leitor a devolve na linha do meio — a do motorista. Isso é um marco
-     confiável: cada turno lido marca o centro de uma guarnição, e ela é a
-     linha de cima (ENC), a do turno (MOT) e a de baixo (AUX). Só vale quando
-     os marcos cobrem todas as linhas sem sobrar nem sobrepor; qualquer
-     folga e o agrupamento antigo, por espaçamento, assume. */
+  /* O turno é uma célula MESCLADA na guarnição, e o leitor a devolve sempre
+     na SEGUNDA linha do bloco — tanto na guarnição de 3 quanto na de 4.
+     Então cada turno lido, menos uma linha, marca o COMEÇO de uma guarnição,
+     e ela vai até o começo da seguinte. Isso é melhor que supor três por
+     bloco: a guarnição de 4 integrantes deixa de desalinhar todas as
+     seguintes, que era o erro do Grupo Tático 3. */
   function escPorTurno(ags){
     var anc=[];
     ags.forEach(function(a,i){if(a&&a.turno)anc.push(i)});
     if(anc.length<2)return null;
-    var blocos=[],usado={},ok=true;
-    anc.forEach(function(t){
-      var b=[];
-      [t-1,t,t+1].forEach(function(j){
-        if(j<0||j>=ags.length)return;
-        if(usado[j]){ok=false;return}
-        usado[j]=1;b.push(ags[j]);
-      });
-      if(b.length)blocos.push(b);
-    });
-    if(!ok)return null;
-    for(var i=0;i<ags.length;i++)if(!usado[i])return null;
+    var ini=anc.map(function(t){return Math.max(0,t-1)});
+    ini[0]=0;                       /* o que vier antes entra na 1ª guarnição */
+    for(var i=1;i<ini.length;i++)if(ini[i]<=ini[i-1])return null;
+    var blocos=[];
+    for(var k=0;k<ini.length;k++){
+      var fim=(k+1<ini.length)?ini[k+1]:ags.length;
+      var b=ags.slice(ini[k],fim);
+      if(b.length<2||b.length>6)return null;   /* fora disso, não confio */
+      blocos.push(b);
+    }
     return blocos;
   }
 
