@@ -335,7 +335,7 @@
 
 <header><div class="bar">
   <div class="shield">GCM</div>
-  <div><h1>Registro de Abordagens</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v52 · 06/09 lista de D.P. corrigida</span></p></div>
+  <div><h1>Registro de Abordagens</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v53 · 06/09 busca de endereço mais rápida</span></p></div>
   <button class="app-btn" id="app_btn" onclick="appClick()" title="Instalar o aplicativo no celular"><span class="dot"></span><span class="lbl">App</span></button>
 </div></header>
 
@@ -1075,8 +1075,7 @@
     if(rua.replace(/[^A-Za-zÀ-ÿ]/g,'').length<4)return;
     var cep=document.getElementById('f_cep');
     if(cep&&cep.value)return;
-    fetch('https://viacep.com.br/ws/SP/Sao%20Paulo/'+encodeURIComponent(rua)+'/json/')
-      .then(function(r){return r.json()})
+    geoFetch('https://viacep.com.br/ws/SP/Sao%20Paulo/'+encodeURIComponent(rua)+'/json/')
       .then(function(j){
         if(!Array.isArray(j)||!j.length)return;
         var a=j[0];
@@ -1963,6 +1962,56 @@
   function parseDoc(text,blk){return applyFields(parseFields(text),blk).found}
 
   /* ---- GPS (localização + endereço) ---- */
+  /* ============ CONSULTAS DE ENDERECO ============
+     O Nominatim e o servico "oficial" do OpenStreetMap, mas ele limita a uma
+     consulta por segundo e derruba rajada -- foi o que fez a busca dos
+     hospitais engasgar e o GPS voltar sem endereco. O Photon roda em cima do
+     mesmo dado do OSM, aguenta varias consultas juntas e responde bem mais
+     rapido. Entao o Photon vira o primeiro, e o Nominatim fica de reserva. */
+  function geoFetch(url,ms){
+    var ctl=(typeof AbortController!=='undefined')?new AbortController():null;
+    var t=setTimeout(function(){if(ctl)ctl.abort()},ms||7000);
+    return fetch(url,ctl?{signal:ctl.signal}:undefined)
+      .then(function(r){clearTimeout(t);if(!r.ok)throw 0;return r.json()})
+      .catch(function(e){clearTimeout(t);throw e});
+  }
+
+  /* endereco -> coordenada */
+  function geoBusca(q){
+    return geoFetch('https://photon.komoot.io/api/?limit=1&lang=pt&q='+encodeURIComponent(q))
+      .then(function(j){
+        var f=j&&j.features&&j.features[0];if(!f)throw 0;
+        return {la:+f.geometry.coordinates[1],lo:+f.geometry.coordinates[0]};
+      })
+      .catch(function(){
+        return geoFetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&q='+encodeURIComponent(q))
+          .then(function(j){
+            if(!j||!j.length)throw 0;
+            return {la:parseFloat(j[0].lat),lo:parseFloat(j[0].lon)};
+          });
+      });
+  }
+
+  /* coordenada -> endereco */
+  function geoReverso(la,lo){
+    return geoFetch('https://photon.komoot.io/reverse?lang=pt&lat='+la+'&lon='+lo)
+      .then(function(j){
+        var f=j&&j.features&&j.features[0];if(!f)throw 0;
+        var p=f.properties||{};
+        return {via:p.street||p.name||'',num:p.housenumber||'',
+                cep:p.postcode||'',bairro:p.district||p.locality||p.suburb||''};
+      })
+      .catch(function(){
+        return geoFetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&addressdetails=1&lat='+la+'&lon='+lo)
+          .then(function(j){
+            var a=(j&&j.address)||{};
+            return {via:a.road||a.pedestrian||a.footway||a.residential||a.path||'',
+                    num:a.house_number||'',cep:a.postcode||'',
+                    bairro:a.suburb||a.neighbourhood||a.city_district||''};
+          });
+      });
+  }
+
   function gpsFind(btn){
     var blk=btn.closest('.gblock'),box=blk.querySelector('.gps-box');
     if(!navigator.geolocation){box.innerHTML='<div class="gps-msg" style="color:var(--warn)">Este navegador não fornece GPS. Lance manualmente.</div>';return}
@@ -1970,9 +2019,8 @@
     navigator.geolocation.getCurrentPosition(function(pos){
       var la=pos.coords.latitude,lo=pos.coords.longitude;
       box.innerHTML='<div class="gps-msg">Buscando endereço…</div>';
-      fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&addressdetails=1&lat='+la+'&lon='+lo,{headers:{'Accept':'application/json'}})
-        .then(function(r){return r.json()})
-        .then(function(j){showGps(box,gpsEndereco(j),la,lo)})
+      geoReverso(la,lo)
+        .then(function(a){showGps(box,gpsEndereco(a),la,lo)})
         .catch(function(){showGps(box,'',la,lo)});
     },function(err){
       var msg=err&&err.code===1?'permissão de localização negada':(err&&err.message?err.message:'não foi possível obter o GPS');
@@ -1981,14 +2029,16 @@
   }
   /* Monta o endereço enxuto: logradouro, número e CEP. O display_name do
      OpenStreetMap vem com bairro, distrito, região e país — sobra demais. */
-  function gpsEndereco(j){
-    var a=(j&&j.address)||{};
-    var via=a.road||a.pedestrian||a.footway||a.residential||a.path||'';
-    var num=a.house_number||'';
-    var cep=(a.postcode||'').replace(/\D/g,'');
+  function gpsEndereco(a){
+    a=a||{};
+    var cep=(a.cep||'').replace(/\D/g,'');
     if(cep.length===8)cep=cep.slice(0,5)+'-'+cep.slice(5);   /* 01310100 -> 01310-100 */
-    if(!via)return '';
-    var t=via+(num?', '+num:'');
+    /* Quando o ponto cai no meio da quadra, o mapa nao tem rua ali. Antes
+       isso devolvia vazio e a tela dizia "endereco nao encontrado". Agora
+       vale o bairro, que ja orienta, com as coordenadas logo abaixo. */
+    var t=a.via?(a.via+(a.num?', '+a.num:'')):(a.bairro||'');
+    if(!t)return '';
+    if(a.via&&a.bairro)t+=' - '+a.bairro;
     if(cep)t+=' — CEP '+cep;
     return t.toUpperCase();
   }
@@ -5743,10 +5793,9 @@
     navigator.geolocation.getCurrentPosition(function(pos){
       var la=pos.coords.latitude,lo=pos.coords.longitude;
       box.textContent='Coordenadas: '+la.toFixed(5)+', '+lo.toFixed(5);
-      fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&addressdetails=1&lat='+la+'&lon='+lo,
-            {headers:{'Accept':'application/json'}})
-        .then(function(r){return r.json()}).then(function(j){
-          var txt=gpsEndereco(j);
+      geoReverso(la,lo)
+        .then(function(a){
+          var txt=gpsEndereco(a);
           if(txt){document.getElementById('op_local').value=txt;build();
                   box.textContent='Local preenchido pelo GPS: '+txt}
           else box.textContent='Não achei o logradouro. Coordenadas: '+la.toFixed(5)+', '+lo.toFixed(5);
@@ -6235,39 +6284,41 @@
   function psGeoUm(u){
     var c=psCache();
     if(c[u[1]])return Promise.resolve(c[u[1]]);
-    var q=u[2]+', '+u[3]+', São Paulo, SP, Brasil';
-    return fetch('https://photon.komoot.io/api/?limit=1&lang=pt&q='+encodeURIComponent(q))
-      .then(function(r){return r.json()})
-      .then(function(j){
-        var f=j&&j.features&&j.features[0];
-        if(!f)throw 0;
-        var co=f.geometry.coordinates;
-        c[u[1]]=[+co[1].toFixed(5),+co[0].toFixed(5)];
+    return geoBusca(u[2]+', '+u[3]+', São Paulo, SP, Brasil')
+      .then(function(g){
+        c[u[1]]=[+g.la.toFixed(5),+g.lo.toFixed(5)];
         return c[u[1]];
       })
-      .catch(function(){
-        return fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&q='+encodeURIComponent(q))
-          .then(function(r){return r.json()})
-          .then(function(j){
-            if(!j||!j.length)return null;
-            c[u[1]]=[+parseFloat(j[0].lat).toFixed(5),+parseFloat(j[0].lon).toFixed(5)];
-            return c[u[1]];
-          }).catch(function(){return null});
-      });
+      .catch(function(){return null});
   }
 
-  /* Mapeia as que faltam, de três em três para não afogar o serviço. */
+  /* Antes ia de tres em tres com pausa entre os lotes, porque o Nominatim
+     derruba rajada -- 60 unidades levavam mais de um minuto e falhavam no
+     meio. Com o Photon da para mandar doze de uma vez, sem pausa: a lista
+     inteira fica pronta em poucos segundos. O que sobrar sem coordenada leva
+     uma segunda tentativa no fim, e o cache e gravado a cada lote, entao
+     perder o sinal no meio nao joga fora o que ja foi feito. */
   function psMapear(cb,st){
-    var c=psCache(),faltam=PS_UNID.filter(function(u){return !c[u[1]]});
-    if(!faltam.length){cb();return}
-    var i=0,feitos=0;
+    var c=psCache();
+    function pendentes(){return PS_UNID.filter(function(u){return !c[u[1]]})}
+    var faltam=pendentes(),total=faltam.length;
+    if(!total){cb();return}
+    var i=0,tentativa=1;
     function passo(){
-      if(i>=faltam.length){psSalvaCache();cb();return}
-      var lote=faltam.slice(i,i+3);i+=3;
-      if(st)st.textContent='Localizando as unidades pela primeira vez ('+
-        Math.min(i,faltam.length)+' de '+faltam.length+')… isso só acontece uma vez neste aparelho.';
-      Promise.all(lote.map(psGeoUm)).then(function(){feitos++;if(feitos%5===0)psSalvaCache();setTimeout(passo,120)})
-                                    .catch(function(){setTimeout(passo,300)});
+      if(i>=faltam.length){
+        psSalvaCache();
+        var resto=pendentes();
+        if(resto.length&&tentativa===1){tentativa=2;faltam=resto;i=0;passo();return}
+        cb();return;
+      }
+      var lote=faltam.slice(i,i+12);i+=12;
+      if(st){
+        st.textContent='Localizando as unidades ('+Math.min(i,faltam.length)+' de '+faltam.length+')… só na primeira vez neste aparelho.';
+        st.style.color='var(--muted)';
+      }
+      Promise.all(lote.map(function(u){return psGeoUm(u)})).then(function(){
+        psSalvaCache();passo();
+      });
     }
     passo();
   }
@@ -6291,8 +6342,10 @@
         });
         if(!lista.length){st.textContent='Não consegui localizar as unidades. Tente com internet.';st.style.color='var(--warn)';return}
         lista.sort(function(a,b){return a.d-b.d});
+        var faltou=PS_UNID.length-lista.length;
         st.innerHTML='Cinco unidades públicas mais próximas, pelo '+fonte+
-          '. <b>Distância em linha reta</b> — o trajeto de rua é maior.';
+          '. <b>Distância em linha reta</b> — o trajeto de rua é maior.'+
+          (faltou?'<br>'+faltou+' unidade(s) ainda sem localização — toque de novo com sinal para completar.':'');
         st.style.color='var(--muted)';
         box.innerHTML=lista.slice(0,5).map(function(x){
           var u=x.u,tp=u[0]==='H'?'Hospital':'UPA';
@@ -6309,14 +6362,9 @@
     var loc=v('f_local');
     if(!loc){st.textContent='Preencha o local da ocorrência primeiro.';st.style.color='var(--warn)';return}
     st.textContent='Procurando o endereço…';st.style.color='var(--muted)';
-    fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&q='+
-          encodeURIComponent(loc.split('—')[0].trim()+', São Paulo, SP'))
-      .then(function(r){return r.json()})
-      .then(function(j){
-        if(!j||!j.length){st.textContent='Não encontrei esse endereço.';st.style.color='var(--warn)';return}
-        comPonto(parseFloat(j[0].lat),parseFloat(j[0].lon),'endereço do local');
-      })
-      .catch(function(){st.textContent='Sem internet para localizar. Tente de novo com sinal.';st.style.color='var(--warn)'});
+    geoBusca(loc.split('—')[0].trim()+', São Paulo, SP')
+      .then(function(g){comPonto(g.la,g.lo,'endereço do local')})
+      .catch(function(){st.textContent='Não encontrei esse endereço. Tente de novo com sinal.';st.style.color='var(--warn)'});
   }
 
   /* Central de flagrantes de cada DP. Fica VAZIO de proposito: eu nao achei
@@ -6379,14 +6427,9 @@
     var loc=v('f_local');
     if(!loc){if(!auto){st.textContent='Preencha o local da ocorrência primeiro.';st.style.color='var(--warn)'}return}
     st.textContent='Procurando o endereço…';st.style.color='var(--muted)';
-    fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&q='+
-          encodeURIComponent(loc.split('—')[0].trim()+', São Paulo, SP'))
-      .then(function(r){return r.json()})
-      .then(function(j){
-        if(!j||!j.length){if(!auto){st.textContent='Não encontrei esse endereço. Lance o D.P. à mão.';st.style.color='var(--warn)'}return}
-        poe(dpPorPonto(parseFloat(j[0].lat),parseFloat(j[0].lon)),'endereço do local');
-      })
-      .catch(function(){if(!auto){st.textContent='Sem internet para procurar o endereço. Lance o D.P. à mão.';st.style.color='var(--warn)'}});
+    geoBusca(loc.split('—')[0].trim()+', São Paulo, SP')
+      .then(function(g){poe(dpPorPonto(g.la,g.lo),'endereço do local')})
+      .catch(function(){if(!auto){st.textContent='Não encontrei esse endereço. Lance o D.P. à mão.';st.style.color='var(--warn)'}});
   }
 
   function clearAll(){
