@@ -335,7 +335,7 @@
 
 <header><div class="bar">
   <div class="shield">GCM</div>
-  <div><h1>Registro de Abordagens</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v53 · 06/09 busca de endereço mais rápida</span></p></div>
+  <div><h1>Registro de Abordagens</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v54 · 06/09 três serviços de endereço</span></p></div>
   <button class="app-btn" id="app_btn" onclick="appClick()" title="Instalar o aplicativo no celular"><span class="dot"></span><span class="lbl">App</span></button>
 </div></header>
 
@@ -1978,7 +1978,7 @@
 
   /* endereco -> coordenada */
   function geoBusca(q){
-    return geoFetch('https://photon.komoot.io/api/?limit=1&lang=pt&q='+encodeURIComponent(q))
+    return geoFetch('https://photon.komoot.io/api/?limit=1&q='+encodeURIComponent(q))
       .then(function(j){
         var f=j&&j.features&&j.features[0];if(!f)throw 0;
         return {la:+f.geometry.coordinates[1],lo:+f.geometry.coordinates[0]};
@@ -1992,22 +1992,43 @@
       });
   }
 
-  /* coordenada -> endereco */
+  /* coordenada -> endereco
+     Tres servicos em fila, porque nenhum deles e confiavel sozinho no
+     celular em servico:
+       1. Photon    - rapido, mas as vezes nao tem nada no ponto exato
+       2. Nominatim - completo, porem limita consulta e recusa rajada
+       3. BigDataCloud - nao devolve a rua, so bairro e cidade, mas quase
+          nunca falha; serve para nao deixar o guarda sem nada.
+     O "lang" saiu da chamada de proposito: o Photon so aceita alguns idiomas
+     e devolve erro quando recebe um que nao conhece -- era o bastante para
+     derrubar a primeira tentativa toda vez. */
   function geoReverso(la,lo){
-    return geoFetch('https://photon.komoot.io/reverse?lang=pt&lat='+la+'&lon='+lo)
+    return geoFetch('https://photon.komoot.io/reverse?lat='+la+'&lon='+lo)
       .then(function(j){
         var f=j&&j.features&&j.features[0];if(!f)throw 0;
         var p=f.properties||{};
-        return {via:p.street||p.name||'',num:p.housenumber||'',
-                cep:p.postcode||'',bairro:p.district||p.locality||p.suburb||''};
+        var r={via:p.street||p.name||'',num:p.housenumber||'',
+               cep:p.postcode||'',bairro:p.district||p.locality||p.suburb||p.city||''};
+        if(!r.via&&!r.bairro)throw 0;
+        return r;
       })
       .catch(function(){
         return geoFetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&addressdetails=1&lat='+la+'&lon='+lo)
           .then(function(j){
             var a=(j&&j.address)||{};
-            return {via:a.road||a.pedestrian||a.footway||a.residential||a.path||'',
-                    num:a.house_number||'',cep:a.postcode||'',
-                    bairro:a.suburb||a.neighbourhood||a.city_district||''};
+            var r={via:a.road||a.pedestrian||a.footway||a.residential||a.path||'',
+                   num:a.house_number||'',cep:a.postcode||'',
+                   bairro:a.suburb||a.neighbourhood||a.city_district||''};
+            if(!r.via&&!r.bairro)throw 0;
+            return r;
+          });
+      })
+      .catch(function(){
+        return geoFetch('https://api.bigdatacloud.net/data/reverse-geocode-client?localityLanguage=pt&latitude='+la+'&longitude='+lo)
+          .then(function(j){
+            var b=(j&&(j.locality||j.city))||'';
+            if(!b)throw 0;
+            return {via:'',num:'',cep:(j&&j.postcode)||'',bairro:b};
           });
       });
   }
@@ -2021,7 +2042,12 @@
       box.innerHTML='<div class="gps-msg">Buscando endereço…</div>';
       geoReverso(la,lo)
         .then(function(a){showGps(box,gpsEndereco(a),la,lo)})
-        .catch(function(){showGps(box,'',la,lo)});
+        .catch(function(e){
+          /* separa "nao achei rua aqui" de "nao consegui falar com ninguem" */
+          var semRede=(typeof navigator!=='undefined'&&navigator.onLine===false);
+          showGps(box,'',la,lo,semRede?'Sem internet no momento — usar coordenadas'
+                                      :'O mapa não tem endereço neste ponto — usar coordenadas');
+        });
     },function(err){
       var msg=err&&err.code===1?'permissão de localização negada':(err&&err.message?err.message:'não foi possível obter o GPS');
       box.innerHTML='<div class="gps-msg" style="color:var(--warn)">Falhou: '+esc(msg)+'. Você pode lançar o local manualmente.</div>';
@@ -2043,12 +2069,12 @@
     return t.toUpperCase();
   }
 
-  function showGps(box,addr,la,lo){
+  function showGps(box,addr,la,lo,motivo){
     ULT_GPS={la:la,lo:lo};
     var coords=la.toFixed(6)+', '+lo.toFixed(6);
     box.dataset.val=addr||coords;
     box.innerHTML='<div class="gps-found">'+
-      '<div class="gps-addr">'+(addr?esc(addr):'Endereço não encontrado — usar coordenadas')+'</div>'+
+      '<div class="gps-addr">'+(addr?esc(addr):esc(motivo||'Endereço não encontrado — usar coordenadas'))+'</div>'+
       '<div class="gps-coords">'+esc(coords)+'</div>'+
       '<div class="gps-actions">'+
         '<button type="button" class="gps-ok" onclick="gpsUse(this)">OK, usar</button>'+
