@@ -323,14 +323,13 @@
   .tabbtn[data-p="oper"],
   .tabbtn[data-p="saidas"],.tabbtn[data-p="stat"]{display:none !important}
   #tab_oper,#tab_saidas,#tab_stat{display:none !important}
-  .btn-pdf{display:none !important}
 </style>
 </head>
 <body>
 
 <header><div class="bar">
   <div class="shield">GCM</div>
-  <div><h1>Registro de Abordagens</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v45 · 06/09 faixa preta do grupo tático</span></p></div>
+  <div><h1>Registro de Abordagens</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v47 · 06/09 lista de naturezas</span></p></div>
   <button class="app-btn" id="app_btn" onclick="appClick()" title="Instalar o aplicativo no celular"><span class="dot"></span><span class="lbl">App</span></button>
 </div></header>
 
@@ -352,7 +351,7 @@
 <div class="tabbar" id="tabbar">
   <button class="tabbtn active" data-p="equipe" onclick="tab('equipe')">Equipe</button>
   <button class="tabbtn" data-p="abord" onclick="tab('abord')">Abordagem</button>
-  <button class="tabbtn" data-p="ocorr" onclick="tab('ocorr')">Ocorrência</button>
+  <button class="tabbtn" data-p="ocorr" onclick="tab('ocorr')">Relatório de Ocorrência</button>
   <button class="tabbtn" data-p="oper" onclick="tab('oper')">Operações</button>
   <button class="tabbtn" data-p="saidas" onclick="tab('saidas')">Saídas</button>
   <button class="tabbtn" data-p="stat" onclick="tab('stat');renderStats()">Estatística</button>
@@ -440,6 +439,7 @@
       <div class="hint">Ao concluir a abordagem o envio é automático. Este botão serve só para conferir se este aparelho está conseguindo enviar — manda uma linha de teste com o nome <b>TESTE-APP</b>, que depois é só apagar da planilha.</div>
       <button type="button" class="btn-add" style="margin-top:10px" onclick="gfTeste()">🧪 Testar envio agora</button>
       <div id="gf_teste_res" style="font-size:12.5px;margin-top:8px;line-height:1.6"></div>
+      <button class="btn-add" style="margin-top:14px" onclick="limparAbordagem()">🗑️ Limpar abordagem</button>
     </div></section>
   </div>
 
@@ -514,7 +514,8 @@
         </div>
       </div>
 
-      <button class="btn-add" style="margin-top:12px" onclick="clearEquipe()">Limpar equipe</button>
+      <button class="btn-add" style="margin-top:12px" onclick="clearEquipe()">🗑️ Limpar equipe</button>
+      <button class="btn-add" style="margin-top:8px" onclick="limparTudo()">🗑️ Apagar TODOS os dados do app</button>
     </div></section>
   </div>
 
@@ -569,7 +570,7 @@
         <div class="field"><label>Nº CETEL</label><input id="f_cetel" inputmode="numeric" oninput="build()"></div>
         <div class="field"><label>Protocolo (WhatsApp)</label><input id="f_proto" inputmode="numeric" oninput="build()"></div>
       </div>
-      <div class="field"><label>Natureza</label><input id="f_nat" placeholder="Ex.: RECEPTAÇÃO" oninput="build()"></div>
+      <div class="field"><label>Natureza</label><input id="f_nat" list="nat_dl" placeholder="Toque para escolher ou digite" oninput="natMuda()"><datalist id="nat_dl"></datalist></div>
       <div class="field"><label>Complemento da natureza</label><input id="f_compnat" oninput="build()"></div>
       <div class="row">
         <div class="field"><label>Código</label><input id="f_codigo" placeholder="Ex.: B10" oninput="build()"></div>
@@ -690,6 +691,10 @@
 
     <div id="conc_oc_result"></div>
     <button class="concluir-btn" onclick="concluirOcorrencia()">✓ Concluir ocorrência</button>
+    <section><div class="sec-body">
+      <div class="hint">O que você preenche aqui fica gravado neste aparelho e volta ao abrir o app. Só sai quando você mandar apagar.</div>
+      <button class="btn-add" style="margin-top:10px" onclick="ocLimpar()">🗑️ Limpar Relatório de Ocorrência</button>
+    </div></section>
   </div>
 
   <!-- ===== SAÍDAS ===== -->
@@ -876,8 +881,7 @@
 </div>
 
 <div class="footbar"><div>
-  <button class="btn-clear" onclick="clearAll()">Limpar</button>
-  <button class="btn-pdf" onclick="savePDF()">Salvar RO em PDF</button>
+  <button class="btn-pdf" onclick="savePDF()">R.O</button>
 </div></div>
 
 
@@ -1176,7 +1180,7 @@
     build();
     var st=roStatus(sel);
     if(sel.value!=='Sim'){st.textContent='';return}
-    roAbrir({nat:'L01 - AUTO LOCALIZADO',codigo:'L01',rot:'Auto Localizado',
+    roAbrir({nat:'L01 - VEÍCULO (ABANDONADO/LOCALIZADO)',codigo:'L01',rot:'Veículo Localizado',
              vei:readDefs(sel.closest('.gblock'),DEFS.abd_veic),
              ab:segObjs('abordado')[0],st:st});
   }
@@ -1185,7 +1189,7 @@
     build();
     var st=roStatus(sel);
     if(sel.value!=='Sim'){st.textContent='';return}
-    roAbrir({nat:'J13 - CAPTURA DE PROCURADO',codigo:'J13',rot:'Captura de Procurado',
+    roAbrir({nat:'J13 - CAPTURA DE FORAGIDO/PROCURADO',codigo:'J13',rot:'Captura de Foragido/Procurado',
              ab:readDefs(sel.closest('.gblock'),DEFS.abordado),st:st});
   }
 
@@ -5865,6 +5869,219 @@
     tmUpd('ab');tmUpd('oc');
   }
 
+  /* ============ O RELATÓRIO DE OCORRÊNCIA NÃO SE PERDE ============
+     Tudo o que for preenchido nessa aba fica gravado neste aparelho e volta
+     ao abrir o app — inclusive as partes e os blocos que você acrescentou.
+     Só sai quando você mandar apagar. Fotos ficam de fora: não cabem no
+     espaço que o navegador reserva. */
+  var OCKEY='gcm_ocorr_v1',OC_PRONTO=false,OC_TIMER=null;
+
+  /* quais blocos moram nesta aba (os outros são da abordagem) */
+  function ocSegs(){
+    var pane=document.getElementById('tab_ocorr');
+    return Object.keys(SEG).filter(function(n){
+      var el=document.getElementById('seg_'+n);
+      return el&&pane&&pane.contains(el);
+    });
+  }
+
+  function ocSalvar(){
+    if(!OC_PRONTO)return;
+    clearTimeout(OC_TIMER);
+    OC_TIMER=setTimeout(function(){
+      try{
+        var pane=document.getElementById('tab_ocorr');if(!pane)return;
+        var campos={};
+        pane.querySelectorAll('input[id],select[id],textarea[id]').forEach(function(e){
+          if(e.type==='file')return;
+          campos[e.id]=(e.type==='checkbox')?(e.checked?1:0):e.value;
+        });
+        var blocos={};
+        ocSegs().forEach(function(n){blocos[n]=segObjs(n)});
+        lsSet(OCKEY,JSON.stringify({campos:campos,blocos:blocos,partes:readPartes(),ts:Date.now()}));
+      }catch(e){}
+    },400);
+  }
+
+  function ocRestaurar(){
+    var raw;try{raw=localStorage.getItem(OCKEY)}catch(e){return}
+    if(!raw)return;
+    var d;try{d=JSON.parse(raw)}catch(e){return}
+    if(!d||!d.campos)return;
+    var pane=document.getElementById('tab_ocorr');if(!pane)return;
+
+    /* blocos acrescentados: recria a quantidade certa e devolve o conteúdo */
+    (d.blocos?Object.keys(d.blocos):[]).forEach(function(n){
+      if(!SEG[n])return;
+      var lista=d.blocos[n]||[];
+      SEG[n].ids.slice().forEach(function(id){segDel(n,id)});
+      if(!lista.length)return;
+      var cx=document.getElementById('has_'+n);
+      if(cx&&!cx.checked){cx.checked=true;toggleSeg(n)}
+      while(SEG[n].ids.length<lista.length)segAdd(n);
+      SEG[n].ids.forEach(function(id,i){
+        var blk=document.getElementById(id),o=lista[i]||{};
+        if(!blk)return;
+        Object.keys(o).forEach(function(k){
+          var el=blk.querySelector('[data-k="'+k+'"]');
+          if(el&&o[k])el.value=o[k];
+        });
+      });
+    });
+
+    if(d.partes&&d.partes.length){
+      PARTES.slice().forEach(delParte);
+      d.partes.forEach(function(o){
+        addParte();
+        var blk=document.getElementById(PARTES[PARTES.length-1]);
+        Object.keys(o).forEach(function(k){
+          var el=blk.querySelector('[data-k="'+k+'"]');
+          if(el&&o[k])el.value=o[k];
+        });
+      });
+    }
+
+    Object.keys(d.campos).forEach(function(id){
+      var e=document.getElementById(id);
+      if(!e||!pane.contains(e)||e.type==='file')return;
+      if(e.type==='checkbox')e.checked=!!d.campos[id];
+      else e.value=d.campos[id];
+    });
+
+    try{toggleTipo()}catch(e){}
+    ocSegs().forEach(function(n){
+      var cx=document.getElementById('has_'+n);
+      if(cx)try{toggleSeg(n)}catch(e){}
+    });
+    build();
+  }
+
+  function ocLimpar(){
+    if(!confirm('Apagar tudo o que está no Relatório de Ocorrência? Isso não dá para desfazer.'))return;
+    var pane=document.getElementById('tab_ocorr');
+    if(pane)pane.querySelectorAll('input,select,textarea').forEach(function(e){
+      if(e.type==='file')return;
+      if(e.type==='checkbox')e.checked=false;else e.value='';
+    });
+    ocSegs().forEach(function(n){
+      SEG[n].ids.slice().forEach(function(id){segDel(n,id)});
+      var cx=document.getElementById('has_'+n);if(cx){cx.checked=false;try{toggleSeg(n)}catch(e){}}
+    });
+    PARTES.slice().forEach(delParte);
+    apoio.slice().forEach(delApoio);try{setApoio(false)}catch(e){}
+    FOTOS={};
+    document.querySelectorAll('#tab_ocorr .fprev').forEach(function(p){p.style.display='none';p.src=''});
+    var u=document.getElementById('f_unidade');if(u)u.value='ROMU';
+    var r=document.getElementById('f_rdp');if(r)r.value='NENHUM';
+    var o=document.getElementById('f_ose');if(o)o.value='NENHUMA';
+    var cs=document.getElementById('cep_status');if(cs)cs.textContent='';
+    addParte();toggleTipo();
+    try{localStorage.removeItem(OCKEY)}catch(e){}
+    build();window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  /* apaga tudo: as três abas e o que está gravado no aparelho */
+  function limparTudo(){
+    if(!confirm('Apagar TODOS os dados do app — equipe, abordagem e relatório de ocorrência? Isso não dá para desfazer.'))return;
+    if(!confirm('Confirma? Depois de apagar não tem como voltar.'))return;
+    try{localStorage.removeItem(OCKEY)}catch(e){}
+    try{lsSet(EKEY,'{}')}catch(e){}
+    document.querySelectorAll('input,textarea,select').forEach(function(e){
+      if(e.type==='file')return;
+      if(e.type==='checkbox')e.checked=false;else e.value='';
+    });
+    Object.keys(SEG).forEach(function(n){
+      SEG[n].ids.slice().forEach(function(id){segDel(n,id)});
+      var cx=document.getElementById('has_'+n);if(cx){cx.checked=false;try{toggleSeg(n)}catch(e){}}
+    });
+    PARTES.slice().forEach(delParte);apoio.slice().forEach(delApoio);
+    try{setApoio(false)}catch(e){}
+    FOTOS={};
+    document.querySelectorAll('.fprev').forEach(function(p){p.style.display='none';p.src=''});
+    var u=document.getElementById('f_unidade');if(u)u.value='ROMU';
+    var r=document.getElementById('f_rdp');if(r)r.value='NENHUM';
+    var o=document.getElementById('f_ose');if(o)o.value='NENHUMA';
+    segAdd('abordado');addParte();toggleTipo();eqBadge(null);build();
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  /* ---------- naturezas de ocorrência ----------
+     Lista oficial da GCM. O campo aceita escolher da lista ou digitar; ao
+     escolher uma da lista, o código sai sozinho no campo ao lado. */
+  var NATUREZAS=[
+    'A01 - HOMICÍDIO CULPOSO','A02 - HOMICÍDIO DOLOSO','A03 - HOMICÍDIO TENTATIVA',
+    'A04 - ABORTO','A05 - AGRESSÃO','A06 - INFANTICÍDIO',
+    'A07 - PERICLITAÇÃO DA VIDA','A08 - ABANDONO','A09 - OMISSÃO DE SOCORRO',
+    'A10 - AMEAÇA','A11 - SEQUESTRO E CÁRCERE PRIVADO','A12 - VIOLAÇÃO DE DOMICÍLIO',
+    'A14 - RIXA','A15 - CALÚNIA','A16 - DIFAMAÇÃO',
+    'A17 - INJÚRIA','A18 - CONSTRANGIMENTO ILEGAL','A19 - RACISMO',
+    'A20 - PEDIDO DE SOCORRO','A21 - ENCONTRO DE CADÁVER','A22 - SUICÍDIO',
+    'A23 - TENTATIVA DE SUICÍDIO','A24 - AFOGAMENTO EM CURSO','A25 - TORTURA',
+    'A26 - ABANDONO MATERIAL','A27 - ABANDONO INTELECTUAL','A28 - ENTREGA DE FILHO MENOR A PESSOA INIDÔNEA',
+    'A29 - SUBTRAÇÃO DE INCAPAZ','A30 - LESÃO CORPORAL/AGRESSÃO CULPOSA','A31 - MORTE DE PESSOA',
+    'A32 - CONDUTAS DISCRIMINATÓRIAS','B01 - FURTO','B02 - FURTO TENTATIVA',
+    'B03 - ROUBO TENTATIVA','B04 - ROUBO','B05 - EXTORSÃO',
+    'B06 - POSSE/INVASÃO DE PROPRIEDADE','B07 - DANO MATERIAL','B08 - APROPRIAÇÃO INDÉBITA',
+    'B09 - ESTELIONATO/FRAUDE','B10 - RECEPTAÇÃO','B11 - LATROCÍNIO',
+    'B12 - ALARME DISPARADO','C01 - PERTURBAÇÃO DE SOSSEGO PÚBLICO','C02 - CONDUTA INCONVENIENTE',
+    'C03 - EMBRIAGUEZ','C04 - DESINTELIGÊNCIA','C05 - AVERIGUAÇÃO DE ATITUDE SUSPEITA',
+    'C06 - PERTURBAÇÃO DE CERIMÔNIA FUNERÁRIA','C07 - VIOLAÇÃO DE SEPULTURA','C08 - DESTRUIÇÃO/SUBTRAÇÃO/OCULTAÇÃO DE CADÁVER',
+    'C09 - VILIPÊNDIO A CADÁVER','C99 - PANCADÃO/FUNK/ESQUENTA','D01 - ESTUPRO',
+    'D02 - ESTUPRO TENTATIVA','D03 - ATO OBSCENO','D04 - ESCRITO OU OBJETO OBSCENO',
+    'D05 - ATENTADO VIOLENTO AO PUDOR','D06 - CORRUPÇÃO DE MENORES','D07 - RAPTO',
+    'D08 - EXPLORAÇÃO DO LENOCÍNIO','D09 - JOGO DE AZAR','D12 - SERVIR BEBIDA ALCOÓLICA A INCAPAZ',
+    'D13 - IMPORTUNAÇÃO OFENSIVA AO PUDOR','D14 - VIOLÊNCIA DOMÉSTICA','E01 - PECULATO',
+    'E02 - CONCUSSÃO','E03 - CORRUPÇÃO','E04 - PREVARICAÇÃO',
+    'E05 - VIOLÊNCIA ARBITRÁRIA','E06 - USURPAÇÃO DE FUNÇÃO PÚBLICA','E07 - APOIO A OUTROS ÓRGÃOS',
+    'E08 - DESOBEDIÊNCIA','E09 - DESACATO','E10 - CONTRABANDO/DESCAMINHO',
+    'E11 - ABUSO DE AUTORIDADE','E13 - RESISTÊNCIA','F01 - OCORRÊNCIAS COM ENTORPECENTE',
+    'G01 - OCORRÊNCIAS COM PRESO','G02 - COMUNICAÇÃO FALSA DE CRIME/CONTRAVENÇÃO','H01 - GREVE',
+    'H02 - PIQUETE','H03 - TUMULTO','H04 - PASSEATA',
+    'H05 - SAQUE/ARRASTÃO','H06 - MANIFESTAÇÃO PÚBLICA','J01 - EXERCÍCIO ILEGAL DE PROFISSÃO/ATIVIDADE',
+    'J02 - ENVENENAMENTO DE ÁGUA POTÁVEL','J03 - DETENÇÃO DE SUSPEITO','J04 - SUBVERSÃO/TERRORISMO',
+    'J05 - CRIME CONTRA A ECONOMIA POPULAR','J06 - FALSA IDENTIDADE','J07 - USO DE DOCUMENTO FALSO',
+    'J08 - FALSIDADE IDEOLÓGICA','J09 - ARMA DE FOGO (DISPARO ACIDENTAL/INTENCIONAL)','J10 - OCORRÊNCIA DE FALSIFICAÇÃO',
+    'J11 - ASSOCIAÇÃO CRIMINOSA','J12 - SOLTURA DE FOGOS (LEI 17.389/21)','J13 - CAPTURA DE FORAGIDO/PROCURADO',
+    'L01 - VEÍCULO (ABANDONADO/LOCALIZADO)','L03 - DIRIGIR VEÍCULO (DE FORMA CRIMINOSA)','L06 - INTERDIÇÃO DE VIA PÚBLICA',
+    'L07 - ATROPELAMENTO','L08 - ACIDENTE DE TRÂNSITO COM VÍTIMA','L09 - ACIDENTE DE TRÂNSITO SEM VÍTIMA',
+    'M01 - OCORRÊNCIA COM PESSOA','M02 - CHOQUE ELÉTRICO','M03 - MERGULHO/SALTO NA ÁGUA CAUSANDO TRAUMA',
+    'M04 - INSETO AGRESSIVO','M05 - OVERDOSE','M06 - INGESTÃO/INJEÇÃO/INALAÇÃO DE SUBSTÂNCIA',
+    'M07 - INTOXICAÇÃO POR EXPOSIÇÃO A GÁS','M08 - LESÃO POR EXPOSIÇÃO A PRODUTOS PERIGOSOS','M09 - QUEIMADURA',
+    'M11 - AUXÍLIO A GESTANTE','M12 - DESAPARECIMENTO DE PESSOA','M14 - MAL SÚBITO',
+    'M15 - QUEDA DE PESSOA','M19 - PESSOA EM LOCAL DE RISCO','M21 - EMERGÊNCIA CARDÍACA',
+    'M22 - EMERGÊNCIA CLÍNICA','N01 - INCÊNDIO','N02 - EXPLOSÃO',
+    'N03 - SUPERAQUECIMENTO DE EQUIPAMENTO','N04 - VAZAMENTO','N06 - OCORRÊNCIA COM ÁRVORE (CORTE IRREGULAR)',
+    'N06.1 - OCORRÊNCIA COM ÁRVORE (PODA IRREGULAR)','N08 - ACIDENTE COM MEIO DE TRANSPORTE','N10 - DESABAMENTO/DESMORONAMENTO/SOTERRAMENTO',
+    'N12 - ANIMAL AGRESSIVO','N13 - OCORRÊNCIA COM OBJETO','N14 - INUNDAÇÃO/ENCHENTE',
+    'N16 - EMBARCAÇÃO EM SITUAÇÃO DE RISCO','N21 - QUEDA DE ÁRVORE','N22 - RISCO IMINENTE DE EXPLOSÃO',
+    'N26 - ANIMAL SILVESTRE VITIMADO OU EM SITUAÇÃO VULNERÁVEL','N26.1 - ANIMAL DOMÉSTICO VITIMADO OU EM SITUAÇÃO VULNERÁVEL','N28 - MAUS-TRATOS DE ANIMAIS SILVESTRES',
+    'N28.1 - MAUS-TRATOS DE ANIMAIS DOMÉSTICOS','N30 - COMÉRCIO DE ANIMAIS SILVESTRES','N31 - GUARDA DE ANIMAL SILVESTRE (CATIVEIRO)',
+    'P01 - INÍCIO DE OBRA DE CONSTRUÇÃO IRREGULAR','P02 - PAREDES LEVANTADAS EM CONSTRUÇÃO IRREGULAR','P03 - LAJE E/OU COBERTURA EM CONSTRUÇÃO IRREGULAR',
+    'P04 - CONSTRUÇÃO IRREGULAR HABITADA EM ÁREA AMBIENTAL','P05 - CONSTRUÇÃO IRREGULAR DESABITADA EM ÁREA AMBIENTAL','P06 - DESMATAMENTO',
+    'P06.1 - QUEIMADA','P07 - ÁREA DEMARCADA PARA PARCELAMENTO IRREGULAR','P08 - MOVIMENTAÇÃO DE TERRA EM ÁREA DE INTERESSE',
+    'P09 - MATERIAL DE CONSTRUÇÃO NO PASSEIO','P10 - MATERIAL DE CONSTRUÇÃO EM TERRENO','P12 - DESCARTE IRREGULAR DE RESÍDUOS EM ÁREA DE PRESERVAÇÃO AMBIENTAL',
+    'P13 - DESCARTE IRREGULAR DE RESÍDUOS EM VIAS PÚBLICAS','P14 - CAÇA E PESCA IRREGULAR','P17 - DESCARGA DE PRODUTOS QUÍMICOS EM CURSO D\'ÁGUA',
+    'P19 - PICHAÇÃO','P20 - DESTRUIÇÃO/DANO EM PLANTAS DE ORNAMENTO','P22 - FABRICAR, VENDER OU SOLTAR BALÕES',
+    'P23 - TRANSPORTE IRREGULAR DE RESÍDUOS','P24 - ASSOREAMENTO DE CURSO D\'ÁGUA','P25 - CAPTAÇÃO IRREGULAR DE RECURSOS HÍDRICOS',
+    'P26 - CANALIZAÇÃO IRREGULAR DE CURSO D\'ÁGUA','Z01 - EM VIA PÚBLICA, CALÇADA OU PRAÇA','Z02 - EM IMÓVEL PRIVADO',
+    'Z03 - EM IMÓVEL PÚBLICO','Z04 - EM EQUIPAMENTO DE CONCESSÃO DE SERVIÇO','Z06 - EM ESCOLA (PÚBLICA OU PRIVADA)',
+    'Z07 - RELACIONADO A PROSTITUIÇÃO','Z08 - RELACIONADO A POPULAÇÃO DE RUA','Z09 - RELACIONADO A EVENTOS NÃO AUTORIZADOS',
+    'Z10 - RELACIONADO A ATIVIDADES IRREGULARES','Z11 - RELACIONADO À FALTA DE AUTORIZAÇÃO','Z99 - OCORRÊNCIA NÃO CADASTRADA'
+  ];
+  function natInit(){
+    var dl=document.getElementById('nat_dl');
+    if(!dl)return;
+    dl.innerHTML=NATUREZAS.map(function(n){return '<option value="'+n+'"></option>'}).join('');
+  }
+  /* preenche o código quando a natureza escolhida está na lista */
+  function natMuda(){
+    var el=document.getElementById('f_nat'),cod=document.getElementById('f_codigo');
+    if(!el||!cod)return;
+    var m=String(el.value||'').match(/^\s*([A-Z]\d{2}(?:\.\d)?)\s*[-–]/i);
+    if(m&&NATUREZAS.indexOf(el.value)>=0)cod.value=m[1].toUpperCase();
+    build();
+  }
+
   function clearAll(){
     if(!confirm('Apagar todos os dados desta ocorrência?'))return;
     pushHist(v('f_hist'));
@@ -5887,7 +6104,17 @@
       window.__sw.estado='falhou';window.__sw.erro=(e&&e.message)||String(e);
     });
   })}else{window.__sw.estado='navegador não suporta'}
-  initFotos();eqBadge(null);segAdd('abordado');addParte();renderRecent();renderStats();toggleTipo();gfInit();vtrRender();resetOnLoad();lockAll();build();
+  /* qualquer digitação dentro do Relatório de Ocorrência grava sozinha */
+  ['input','change'].forEach(function(ev){
+    document.addEventListener(ev,function(e){
+      var pane=document.getElementById('tab_ocorr');
+      if(pane&&e.target&&e.target.closest&&pane.contains(e.target))ocSalvar();
+    },true);
+  });
+
+  natInit();initFotos();eqBadge(null);segAdd('abordado');addParte();renderRecent();renderStats();toggleTipo();gfInit();vtrRender();resetOnLoad();lockAll();build();
+  try{ocRestaurar()}catch(e){}
+  OC_PRONTO=true;
 </script>
 
 <script>
