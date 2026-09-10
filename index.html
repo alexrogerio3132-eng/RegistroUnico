@@ -330,7 +330,7 @@
 
 <header><div class="bar">
   <div class="shield">GCM</div>
-  <div><h1>Registro de Abordagens</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v42 · 05/09 lixo na margem do Detecta</span></p></div>
+  <div><h1>Registro de Abordagens</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v45 · 06/09 faixa preta do grupo tático</span></p></div>
   <button class="app-btn" id="app_btn" onclick="appClick()" title="Instalar o aplicativo no celular"><span class="dot"></span><span class="lbl">App</span></button>
 </div></header>
 
@@ -445,25 +445,14 @@
 
   <!-- ===== EQUIPE ===== -->
   <div class="tabpane active" id="tab_equipe">
-    <section><div class="sec-head"><h2>Meu cadastro</h2></div><div class="sec-body">
+    <section><div class="sec-head"><h2>Ordem de serviço</h2></div><div class="sec-body">
       <button type="button" class="gps-btn" style="margin-top:0" onclick="escAbrir()">📋 Importar escala do plantão</button>
       <div class="hint" id="esc_resumo" style="margin-top:8px"></div>
       <details class="ocr-det" id="esc_lido_wrap" style="display:none;margin-top:6px">
         <summary>Ver texto lido pela foto</summary>
         <div class="ocr-raw" id="esc_lido"></div>
       </details>
-      <div class="hint" style="margin-top:8px">Graduação e QRA ficam gravados neste aparelho e não expiram. Servem para o app achar você dentro da escala.</div>
-      <div class="row" style="margin-top:8px">
-        <div class="field"><label>Graduação</label>
-          <input id="f_meu_posto" list="posto_dl" placeholder="Ex.: CE" oninput="saveMe()">
-          <datalist id="posto_dl"><option>CE</option><option>SI</option><option>SL</option><option>SUB</option>
-            <option>1º</option><option>2º</option><option>3º</option><option>INSP</option><option>CD</option></datalist></div>
-        <div class="field"><label>QRA (nome de guerra)</label>
-          <input id="f_meu_qra" placeholder="Ex.: CLEY" oninput="saveMe()"></div>
-      </div>
-    </div></section>
-    <section><div class="sec-head"><h2>Ordem de serviço</h2></div><div class="sec-body">
-      <div class="field"><label>O.S. nº</label>
+      <div class="field" style="margin-top:10px"><label>O.S. nº</label>
         <input id="f_gt_os" class="keep os-big" placeholder="Ex.: 1008/SAE/2026" oninput="saveEquipe();build()"></div>
       <div class="row">
         <div class="field"><label>Grupo tático</label>
@@ -473,8 +462,20 @@
       </div>
       <div class="field"><label>Efetivo do grupo tático</label>
         <textarea id="f_gt_ef" class="keep" rows="7" placeholder="Todas as guarnições do grupo tático. Vem preenchido ao importar a escala." oninput="saveEquipe();build()"></textarea>
-        <div class="hint" id="gt_lista">Use <b>Importar escala do plantão</b>, no cadastro abaixo, para trazer o grupo inteiro de uma vez.</div>
+        <div class="hint" id="gt_lista">Use <b>Importar escala do plantão</b>, aqui em cima, para trazer o grupo inteiro de uma vez.</div>
       </div>
+      <details class="ocr-det" style="margin-top:12px">
+        <summary>Meus dados neste aparelho</summary>
+        <div class="hint" style="margin-top:8px">Graduação e QRA ficam gravados neste aparelho e não expiram. Servem para o app achar você dentro da escala.</div>
+        <div class="row" style="margin-top:8px">
+          <div class="field"><label>Graduação</label>
+            <input id="f_meu_posto" list="posto_dl" placeholder="Ex.: CE" oninput="saveMe()">
+            <datalist id="posto_dl"><option>CE</option><option>SI</option><option>SL</option><option>SUB</option>
+              <option>1º</option><option>2º</option><option>3º</option><option>INSP</option><option>CD</option></datalist></div>
+          <div class="field"><label>QRA (nome de guerra)</label>
+            <input id="f_meu_qra" placeholder="Ex.: CLEY" oninput="saveMe()"></div>
+        </div>
+      </details>
     </div></section>
 
 
@@ -2894,8 +2895,35 @@
   var RE_PREF_E =/\b(CE|SI|SL|SUB|IA|CR|ID|INSP|CD|GCM|[123]\s*º)\s*(\d{3,5})\b/i;
   var RE_OS_E   =/(\d{3,4})\s*[\/\\|I1]\s*([A-Z]{2,6}?)\s*[\/\\|I1]?\s*(\d{4})\b/i;
   var RE_GRUPO_E=/GRUPO\s*T[ÁA]?T[IÍ]COS?\s*(\d*)/i;
-  var POSTOS_E  =['CE','SI','SL','SUB','IA','CR','ID','INSP','CD','GCM'];
-  var RE_POSTO_E='CE|SI|SL|SUB|IA|CR|ID|INSP|CD|GCM|[123]\\s*º';
+  var POSTOS_E  =['CE','CD','SI','INSP','ID','IA','IS','SL','SUB','CR','GCM'];
+  var RE_POSTO_E='CE|CD|SI|INSP|ID|IA|IS|SL|SUB|CR|GCM|[123]\\s*[ºª°](?:\\s*CL)?';
+
+  /* A graduação vem SEMPRE antes do QRA e é sempre uma destas:
+     3ºCL, 2ºCL, 1ºCL, CE, CD, SI, INSP, ID, IA, IS.
+     Depois do RF a escala não tem mais número nenhum — então dígito que
+     aparece aqui é letra mal lida: "1.D." é "I.D.", que é a graduação ID.
+     Devolve '' quando o pedaço não é graduação. */
+  function escPosto(tok){
+    var t=String(tok||'').toUpperCase().replace(/[.\s]/g,'');
+    var m=t.match(/^([123])(?:[ºª°]\s*(?:CL)?|CL)$/);
+    if(m)return m[1]+'ºCL';
+    t=t.replace(/1/g,'I').replace(/0/g,'O').replace(/5/g,'S').replace(/8/g,'B');
+    if(POSTOS_E.indexOf(t)>=0)return t;
+    /* Graduação abreviada com ponto ("I.D.", "IL.D.") o leitor às vezes
+       entrega com uma letra a mais. Só aqui vale a folga de uma letra — o
+       ponto é a assinatura da abreviatura, e sem ele um nome curto de
+       verdade ("IDA") não corre risco de virar graduação. */
+    if(/\./.test(String(tok||''))&&t.length<=4){
+      for(var i=0;i<POSTOS_E.length;i++){
+        var p=POSTOS_E[i];
+        if(p.length>=t.length||t.length>p.length+1)continue;
+        var k=0;
+        for(var j=0;j<t.length&&k<p.length;j++)if(t[j]===p[k])k++;
+        if(k===p.length)return p;
+      }
+    }
+    return '';
+  }
 
   /* ==================== PADRÕES DE COLUNA ====================
      A escala impressa tem sempre as mesmas cinco colunas, nesta ordem:
@@ -3027,7 +3055,10 @@
      DIAS") e preserva inicial com ponto ("R. SANCHES") e graduação. */
   function escNomeLimpo(n){
     var toks=String(n||'').toUpperCase().split(/\s+/).filter(Boolean).map(function(w){
-      if(/^[123]\s*[ºO°]$/.test(w))return w[0]+'º';
+      var p=escPosto(w);
+      if(p)return p;                    /* graduação sai padronizada */
+      /* depois do RF a escala não tem número: dígito aqui é letra mal lida */
+      w=w.replace(/1/g,'I').replace(/0/g,'O').replace(/5/g,'S').replace(/8/g,'B');
       var sem=escSemAcento(w).replace(/[^A-ZÇ.]/g,'');
       if(POSTOS_E.indexOf(sem.replace(/\./g,''))>=0)return sem.replace(/\./g,'');
       /* Acento isolado é nome de verdade (DURÃES, ANTÔNIO). Acento em série é
@@ -3041,7 +3072,7 @@
     return toks.filter(function(w,k){
       if(w.length>=3)return true;
       if(/\.$/.test(w))return true;                    /* inicial: "R." */
-      if(/^[123]º$/.test(w))return true;               /* graduação */
+      if(/^[123]ºCL$/.test(w))return true;             /* graduação */
       if(POSTOS_E.indexOf(w)>=0)return true;           /* CE, SI, CD... */
       return PARTICULAS_E.indexOf(w)>=0 && k>0 && k<n0-1;
     }).join(' ').trim();
@@ -3178,7 +3209,7 @@
       .filter(Boolean);
     if(toks.length){
       var cab=toks[0].toUpperCase();
-      if(POSTOS_E.indexOf(cab)>=0||/^[123]º$/.test(cab)){r.posto=cab;toks.shift()}
+      if(escPosto(cab)){r.posto=escPosto(cab);toks.shift()}
       r.nome=toks.join(' ').replace(/\b\d{1,2}\s*h.*$/i,'')
                  .replace(/\b(CE|SI|SL|SUB|IA|CR|ID|INSP|CD|GCM|[123]º)\s*$/i,'').trim();
     }
@@ -3189,7 +3220,7 @@
     if(col.turno)r.turno=col.turno;
     if(col.nome&&(!r.nome||!escNomeOk(r.nome))){
       var tn=col.nome.split(/\s+/);
-      if(POSTOS_E.indexOf(tn[0].toUpperCase())>=0||/^[123]º$/.test(tn[0])){r.posto=tn.shift().toUpperCase()}
+      if(escPosto(tn[0])){r.posto=escPosto(tn.shift())}
       if(tn.length)r.nome=tn.join(' ');
     }
     if(!r.rf&&!r.nome)return null;
@@ -3558,6 +3589,40 @@
     ctx.putImageData(d,0,0);
   }
 
+  /* O número do grupo tático mora numa FAIXA PRETA com letra branca, no alto
+     da folha — e é justamente isso que o leitor não pega, devolvendo coisas
+     como "LCA LO , 0.58 EAST REI". A faixa é medida linha a linha e virada
+     do avesso antes da leitura, virando letra preta no branco. Só faixa: no
+     máximo 15% da altura da folha, para não inverter a página inteira. */
+  function escInverteFaixas(ctx,w,h){
+    try{
+      var img=ctx.getImageData(0,0,w,h),d=img.data;
+      var passo=Math.max(1,(w/240)|0),escuras=new Array(h),i,y,px;
+      for(y=0;y<h;y++){
+        var soma=0,n=0;
+        for(px=0;px<w;px+=passo){
+          i=(y*w+px)*4;
+          soma+=d[i]*0.299+d[i+1]*0.587+d[i+2]*0.114;n++;
+        }
+        escuras[y]=n&&(soma/n)<90;
+      }
+      var maxAlt=Math.max(10,Math.round(h*0.15)),mudou=false,y0=0;
+      for(y=0;y<=h;y++){
+        if(y<h&&escuras[y]){if(!y0)y0=y+1;continue}
+        if(!y0){continue}
+        var ini=y0-1,alt=y-ini;
+        if(alt>=8&&alt<=maxAlt){
+          for(var yy=ini;yy<y;yy++)for(px=0;px<w;px++){
+            i=(yy*w+px)*4;d[i]=255-d[i];d[i+1]=255-d[i+1];d[i+2]=255-d[i+2];
+          }
+          mudou=true;
+        }
+        y0=0;
+      }
+      if(mudou)ctx.putImageData(img,0,0);
+    }catch(e){}
+  }
+
   /* Print de tela e PDF já vêm com preto no branco. Passar o limiar adaptativo
      nesses casos só come o traço fino da letra pequena — foi o que estragou a
      leitura da escala nítida. Aqui a imagem é medida antes: se já for quase só
@@ -3589,6 +3654,7 @@
     x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';
     x.drawImage(ESC_IMG,sx,sy,sw,sh,0,0,out.width,out.height);
 
+    escInverteFaixas(x,out.width,out.height);
     if(!escJaLimpa(x,out.width,out.height)){
       try{escBinariza(x,out.width,out.height)}catch(e){}
     }
@@ -3869,7 +3935,9 @@
 
     gts.forEach(function(gt,gi){
       h+='<div class="esc-g'+((eu&&eu.gt===gt)?'':'')+'" style="margin-top:14px">'+
-         '<h4>Grupo tático '+esc(gt.grupo||('?'+(gi+1)))+(gt.os?' · O.S. '+esc(gt.os):'')+'</h4>';
+         '<h4>'+(gt.grupo?'Grupo tático '+esc(gt.grupo):'Grupo tático')+
+         (gt.os?' · O.S. '+esc(gt.os):'')+'</h4>';
+      if(!gt.grupo)h+='<div class="hint" style="margin-bottom:6px">O número do grupo tático não veio na leitura — lance à mão.</div>';
       if(gt.desc)h+='<div class="hint" style="margin-bottom:6px">'+esc(gt.desc)+'</div>';
       gt.guarnicoes.forEach(function(gu,ui){
         var souEu=eu&&eu.gu===gu;
@@ -3922,8 +3990,9 @@
     saveEquipe();build();
     var n=1+(gu.mot?1:0)+gu.aux.length;
     document.getElementById('esc_resumo').innerHTML=
-      '<span style="color:var(--ok)">✓ Guarnição aplicada: '+n+' integrante(s), grupo tático '+
-      esc(gt.grupo||'?')+(gt.os?', O.S. '+esc(gt.os):'')+'.</span>'+
+      '<span style="color:var(--ok)">✓ Guarnição aplicada: '+n+' integrante(s)'+
+      (gt.grupo?', grupo tático '+esc(gt.grupo):'')+(gt.os?', O.S. '+esc(gt.os):'')+'.</span>'+
+      (gt.grupo?'':'<br><span style="color:var(--warn)">O número do grupo tático não veio na leitura — lance à mão.</span>')+
       '<br><span style="color:var(--warn)">Falta lançar a viatura do dia — ela não vem na escala.</span>';
     escFechar();
     try{document.getElementById('f_vtr').scrollIntoView({block:'center',behavior:'smooth'})}catch(e){}
