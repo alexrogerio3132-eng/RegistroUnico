@@ -335,7 +335,7 @@
 
 <header><div class="bar">
   <div class="shield">GCM</div>
-  <div><h1>Registro de Abordagens</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v54 · 06/09 três serviços de endereço</span></p></div>
+  <div><h1>Registro de Abordagens</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v56 · 06/09 central de flagrantes</span></p></div>
   <button class="app-btn" id="app_btn" onclick="appClick()" title="Instalar o aplicativo no celular"><span class="dot"></span><span class="lbl">App</span></button>
 </div></header>
 
@@ -595,7 +595,7 @@
       <div id="blk_policial" style="display:none">
         <div class="row">
           <div class="field"><label>B.O. / T.C. Nº</label><input id="f_bo" oninput="build()"></div>
-          <div class="field"><label>D.P.</label><input id="f_dp" list="dp_dl" placeholder="Escolha ou toque em achar" oninput="build()"><datalist id="dp_dl"></datalist></div></div><div class="field"><label>Central de flagrantes</label><input id="f_central_flag" placeholder="Preenchida pela área, quando cadastrada" oninput="build()"></div><div class="acoes-linha"><button type="button" class="gps-btn" onclick="dpAchar()">📍 Achar o D.P. pela circunscrição</button><button type="button" class="gps-btn" id="dp_rota" style="display:none" onclick="dpRota()">🧭 Traçar rota até o D.P.</button><div class="hint" id="dp_status"></div><button type="button" class="gps-btn" onclick="psAchar()">🚑 Buscar hospital / UPA mais perto</button><div class="hint" id="ps_status"></div><div id="ps_lista"></div></div>
+          <div class="field"><label>D.P.</label><input id="f_dp" list="dp_dl" placeholder="Escolha ou toque em achar" oninput="build()"><datalist id="dp_dl"></datalist></div></div><div class="field"><label>Central de flagrantes</label><input id="f_central_flag" placeholder="Preenchida pela área, quando cadastrada" oninput="build()"></div><div class="acoes-linha"><button type="button" class="gps-btn" onclick="dpAchar()">📍 Achar o D.P. pela circunscrição</button><button type="button" class="gps-btn" id="dp_rota" style="display:none" onclick="dpRota()">🧭 Traçar rota até o D.P.</button><button type="button" class="gps-btn" id="cf_rota" style="display:none" onclick="cfRota()">⚖️ Traçar rota até a central</button><div class="hint" id="dp_status"></div><button type="button" class="gps-btn" onclick="psAchar()">🚑 Buscar hospital / UPA mais perto</button><div class="hint" id="ps_status"></div><div id="ps_lista"></div></div>
       </div>
       <div id="blk_socorro" style="display:none">
         <div class="field"><label>Nome da unidade de emergência</label><input id="f_soc_unidade" oninput="build()"></div>
@@ -6338,7 +6338,7 @@
         cb();return;
       }
       var lote=faltam.slice(i,i+12);i+=12;
-      if(st){
+      if(st&&st.style){
         st.textContent='Localizando as unidades ('+Math.min(i,faltam.length)+' de '+faltam.length+')… só na primeira vez neste aparelho.';
         st.style.color='var(--muted)';
       }
@@ -6347,6 +6347,21 @@
       });
     }
     passo();
+  }
+
+  /* Mapear as unidades no momento em que o guarda aperta o botao e o pior
+     lugar possivel: e justamente quando ele esta com pressa. Entao isso vai
+     para a abertura do app, em silencio e so com internet. Quando o botao
+     for apertado, as coordenadas ja estao no aparelho e a resposta e
+     imediata. Comeca 4 segundos depois de abrir, para nao disputar rede com
+     o que a tela precisa carregar primeiro. */
+  function psPreparar(){
+    try{
+      if(typeof navigator!=='undefined'&&navigator.onLine===false)return;
+      var c=psCache();
+      if(!PS_UNID.some(function(u){return !c[u[1]]}))return;   /* ja esta tudo */
+      setTimeout(function(){psMapear(function(){},null)},4000);
+    }catch(e){}
   }
 
   function psRota(i){
@@ -6393,12 +6408,16 @@
       .catch(function(){st.textContent='Não encontrei esse endereço. Tente de novo com sinal.';st.style.color='var(--warn)'});
   }
 
-  /* Central de flagrantes de cada DP. Fica VAZIO de proposito: eu nao achei
-     fonte confiavel de qual central atende cada circunscricao, e mandar a
-     guarnicao para o lugar errado de madrugada e pior que nao sugerir nada.
-     Basta preencher aqui no formato "33º DP":"Central Norte" que o app passa
-     a completar sozinho. */
-  var CENTRAL_FLAG={};
+  /* Central de flagrantes de cada DP de area, da ficha de bolso da GCM.
+     27 centrais cobrindo os 93 DPs da capital -- conferido: nenhum DP de
+     fora, nenhum repetido em duas centrais, nenhum sem central.
+
+     Aqui fica so o apontamento DP -> central. Endereco e telefone da central
+     saem do DP_INFO, que e a base ja conferida contra a Prefeitura: a ficha
+     traz alguns telefones em numeracao antiga (o 10 e o 50 ainda com "6" na
+     frente), e nao faz sentido guardar o mesmo endereco duas vezes e deixar
+     as duas copias divergirem com o tempo. */
+  var CENTRAL_FLAG={"1º DP":"8º DP","2º DP":"2º DP","3º DP":"2º DP","4º DP":"78º DP","5º DP":"78º DP","6º DP":"8º DP","7º DP":"91º DP","8º DP":"8º DP","9º DP":"20º DP","10º DP":"10º DP","11º DP":"11º DP","12º DP":"8º DP","13º DP":"13º DP","14º DP":"14º DP","15º DP":"14º DP","16º DP":"16º DP","17º DP":"16º DP","18º DP":"56º DP","19º DP":"20º DP","20º DP":"20º DP","21º DP":"10º DP","22º DP":"63º DP","23º DP":"91º DP","24º DP":"24º DP","25º DP":"101º DP","26º DP":"26º DP","27º DP":"27º DP","28º DP":"13º DP","29º DP":"56º DP","30º DP":"31º DP","31º DP":"31º DP","32º DP":"63º DP","33º DP":"33º DP","34º DP":"89º DP","35º DP":"16º DP","36º DP":"27º DP","37º DP":"89º DP","38º DP":"72º DP","39º DP":"73º DP","40º DP":"13º DP","41º DP":"69º DP","42º DP":"56º DP","43º DP":"98º DP","44º DP":"53º DP","45º DP":"72º DP","46º DP":"33º DP","47º DP":"47º DP","48º DP":"11º DP","49º DP":"49º DP","50º DP":"50º DP","51º DP":"14º DP","52º DP":"10º DP","53º DP":"53º DP","54º DP":"49º DP","55º DP":"49º DP","56º DP":"56º DP","57º DP":"56º DP","58º DP":"31º DP","59º DP":"50º DP","62º DP":"24º DP","63º DP":"63º DP","64º DP":"24º DP","65º DP":"24º DP","66º DP":"53º DP","67º DP":"50º DP","68º DP":"50º DP","69º DP":"69º DP","70º DP":"69º DP","72º DP":"72º DP","73º DP":"73º DP","74º DP":"72º DP","75º DP":"89º DP","77º DP":"2º DP","78º DP":"78º DP","80º DP":"11º DP","81º DP":"31º DP","83º DP":"26º DP","85º DP":"47º DP","87º DP":"33º DP","89º DP":"89º DP","90º DP":"73º DP","91º DP":"91º DP","92º DP":"47º DP","93º DP":"91º DP","95º DP":"26º DP","96º DP":"27º DP","97º DP":"27º DP","98º DP":"98º DP","99º DP":"98º DP","100º DP":"98º DP","101º DP":"101º DP","102º DP":"101º DP","103º DP":"63º DP"};
 
   /* Rota daqui ate a delegacia, no app de mapas do celular. */
   function dpRota(){
@@ -6410,18 +6429,35 @@
     var dest=f.e?encodeURIComponent(f.e+', São Paulo, SP'):(f.la+','+f.lo);
     window.open('https://www.google.com/maps/dir/?api=1&travelmode=driving&destination='+dest,'_blank');
   }
+  function cfRota(){
+    if(!CF_ATUAL)return;
+    var f=dpFicha(CF_ATUAL);if(!f||!f.e)return;
+    window.open('https://www.google.com/maps/dir/?api=1&travelmode=driving&destination='+
+      encodeURIComponent(f.e+', São Paulo, SP'),'_blank');
+  }
   function dpBotaoRota(){
     var b=document.getElementById('dp_rota');
-    if(!b)return;
-    b.style.display=DP_ATUAL?'':'none';
-    var f=dpFicha(DP_ATUAL);
-    b.textContent='🧭 Traçar rota até o '+(DP_ATUAL||'DP')+(f&&f.e?' — '+f.e:'');
+    if(b){
+      b.style.display=DP_ATUAL?'':'none';
+      var f=dpFicha(DP_ATUAL);
+      b.textContent='🧭 Traçar rota até o '+(DP_ATUAL||'DP')+(f&&f.e?' — '+f.e:'');
+    }
+    /* a rota para a central so aparece quando ela e outra unidade */
+    var c=document.getElementById('cf_rota');
+    if(c){
+      var mostra=CF_ATUAL&&CF_ATUAL!==DP_ATUAL;
+      c.style.display=mostra?'':'none';
+      if(mostra){
+        var cf=dpFicha(CF_ATUAL);
+        c.textContent='⚖️ Traçar rota até a central — '+CF_ATUAL+(cf&&cf.e?' — '+cf.e:'');
+      }
+    }
   }
 
   /* Sozinho: assim que o local da ocorrência é preenchido — digitado, vindo
      da abordagem ou lançado pelo R.O. automático — ele procura o DP. Espera
      a digitação parar para não consultar a cada tecla. */
-  var DP_TIMER=null,DP_ULT='',DP_AUTO=false,DP_ATUAL=null;
+  var DP_TIMER=null,DP_ULT='',DP_AUTO=false,DP_ATUAL=null,CF_ATUAL='';
   function dpAuto(){
     clearTimeout(DP_TIMER);
     DP_TIMER=setTimeout(function(){
@@ -6440,13 +6476,22 @@
       if(!nome){if(!auto){st.textContent='Não achei esse ponto dentro de nenhuma circunscrição do mapa.';st.style.color='var(--warn)'}return}
       el.value=dpRotulo(nome);DP_AUTO=true;DP_ATUAL=String(nome);build();
       var f=dpFicha(DP_ATUAL);
-      var cf=CENTRAL_FLAG[DP_ATUAL]||'';
+      CF_ATUAL=CENTRAL_FLAG[DP_ATUAL]||'';
+      var cfF=CF_ATUAL?dpFicha(CF_ATUAL):null;
+      var linhaCF='';
+      if(CF_ATUAL){
+        /* quando a central e o proprio DP, dizer isso poupa uma viagem */
+        linhaCF=(CF_ATUAL===DP_ATUAL)
+          ? '<br>Central de flagrantes: <b>o próprio '+esc(DP_ATUAL)+'</b>'
+          : '<br>Central de flagrantes: <b>'+esc(dpRotulo(CF_ATUAL))+'</b>'+
+            (cfF&&cfF.e?' — '+esc(cfF.e):'')+(cfF&&cfF.t?' · '+esc(cfF.t):'');
+      }
       st.innerHTML='<b>'+esc(dpRotulo(nome))+'</b>'+(f&&f.e?' — '+esc(f.e):'')+(f&&f.t?' · '+esc(f.t):'')+
-        (cf?'<br>Central de flagrantes: <b>'+esc(cf)+'</b>':'')+
+        linhaCF+
         '<br>Pelo '+fonte+'. Confira: perto da divisa o mapa pode não bater.';
       st.style.color='var(--ok)';
       var cfEl=document.getElementById('f_central_flag');
-      if(cfEl&&cf&&!cfEl.value)cfEl.value=cf;
+      if(cfEl&&CF_ATUAL&&!cfEl.value)cfEl.value=dpRotulo(CF_ATUAL);
       dpBotaoRota();
     }
     if(ULT_GPS){poe(dpPorPonto(ULT_GPS.la,ULT_GPS.lo),'GPS da abordagem');return}
@@ -6488,7 +6533,7 @@
     },true);
   });
 
-  natInit();dpInit();initFotos();eqBadge(null);segAdd('abordado');addParte();renderRecent();renderStats();toggleTipo();gfInit();vtrRender();resetOnLoad();lockAll();build();
+  natInit();dpInit();psPreparar();initFotos();eqBadge(null);segAdd('abordado');addParte();renderRecent();renderStats();toggleTipo();gfInit();vtrRender();resetOnLoad();lockAll();build();
   try{ocRestaurar()}catch(e){}
   OC_PRONTO=true;
 </script>
