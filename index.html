@@ -335,7 +335,7 @@
 
 <header><div class="bar">
   <div class="shield">GCM</div>
-  <div><h1>Registro de Abordagens</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v59 · 06/09 leitura do abordado em aparelho fraco</span></p></div>
+  <div><h1>Registro de Abordagens</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v60 · 06/09 endereço pelo bairro</span></p></div>
   <button class="app-btn" id="app_btn" onclick="appClick()" title="Instalar o aplicativo no celular"><span class="dot"></span><span class="lbl">App</span></button>
 </div></header>
 
@@ -1720,6 +1720,18 @@
     return r===+d[10];
   }
 
+  /* "O -.-s <" nao e endereco. Quando o texto capturado nao tem nem uma
+     palavra de verdade, e sobra do leitor e deve ser descartado. */
+  function enderecoPlausivel(t){
+    t=String(t||'').trim();
+    if(t.length<5)return false;
+    var letras=(t.match(/[A-Za-z\u00c0-\u00ff]/g)||[]).length;
+    if(letras<4)return false;
+    if(!/[A-Za-z\u00c0-\u00ff]{3,}/.test(t))return false;
+    var simbolos=(t.match(/[^A-Za-z\u00c0-\u00ff0-9\s,.\-\/]/g)||[]).length;
+    return simbolos<=letras/3;
+  }
+
   function parseFields(text){
     /* o layout do Detetive Forense não usa "Nome:" — o nome é o título da
        tela, logo acima da linha "57 anos, nascido em 21/02/1969" */
@@ -1730,7 +1742,7 @@
     var lines=text.split(/\n/).map(function(l){return l.replace(/\s+/g,' ').trim()});
     var used=new Array(lines.length);
     lines.forEach(function(l,i){if(ehLixoTela(l)){lines[i]='';used[i]=true}});
-    var KNOWN=/^\s*(?:\d{1,2}[).\-]\s*)?(NOME\s+DA\s+M[ÃA]E|NOME\s+DO\s+PAI|NOME\s+SOCIAL|NOME|DATA\s+DE\s+NASC\w*|DATA\s+NASC\w*|NASC\w*|DATA\s+DE\s+ATUALIZA\w*|DATA\s+DE\s+EXPED\w*|ANO\s+DE\s+EXERC\w*|ANO\s+DO\s+[ÓO]BITO|[ÓO]BITO|FILIA[ÇC][ÃA]O|FILHO\s+DE|C\.?\s?P\.?\s?F|R\.?\s?G|REGISTRO\s+GERAL|IDENTIDADE|DOCUMENTO|DOC\w*|ENDERE[ÇC]O|RESID\w*|LOGRADOURO|COMPLEMENTO|BAIRRO|MUNIC[ÍI]PIO|CIDADE|CEP|UF|M[ÃA]E|PAI|TELEFONE|CELULAR|SEXO|NATURALIDADE|OCUPA[ÇC][ÃA]O|ORG[ÃA]O|EXPED\w*|VALIDADE|CARGO|PESSOA|MANDADO|VE[ÍI]CULO)\b/i;
+    var KNOWN=/^\s*(?:\d{1,2}[).\-]\s*)?(NOME\s+DA\s+M[ÃA]E|NOME\s+DO\s+PAI|NOME\s+SOCIAL|NOME|DATA\s+DE\s+NASC\w*|DATA\s+NASC\w*|NASC\w*|DATA\s+DE\s+ATUALIZA\w*|DATA\s+DE\s+EXPED\w*|ANO\s+DE\s+EXERC\w*|ANO\s+DO\s+[ÓO]BITO|[ÓO]BITO|FILIA[ÇC][ÃA]O|FILHO\s+DE|C\.?\s?P\.?\s?F|R\.?\s?G|REGISTRO\s+GERAL|IDENTIDADE|DOCUMENTO|DOC\w*|ENDERE[ÇC]O|RESIDÊNCIA|RESIDENCIA|RESIDENCIAL|LOGRADOURO|COMPLEMENTO|BAIRRO|MUNIC[ÍI]PIO|CIDADE|CEP|UF|M[ÃA]E|PAI|TELEFONE|CELULAR|SEXO|NATURALIDADE|OCUPA[ÇC][ÃA]O|ORG[ÃA]O|EXPED\w*|VALIDADE|CARGO|PESSOA|MANDADO|VE[ÍI]CULO)\b/i;
     function isLabel(l){return KNOWN.test(l)}
     function isNameLine(l){
       if(!l||/[:：]/.test(l))return false;
@@ -1901,14 +1913,17 @@
     var nascRaw=grab('DATA\\s+DE\\s+NASC\\w*|NASC\\w*');
     var cpfRaw=grab('C\\.?\\s?P\\.?\\s?F');
     var rg=grab('R\\.?\\s?G|REGISTRO\\s+GERAL|IDENTIDADE');
-    var end=grab('ENDERE[ÇC]O|RESID\\w*','addr');
+    var end=grab('ENDERE[ÇC]O|RESIDÊNCIA|RESIDENCIA|RESIDENCIAL','addr');
     var tel=grab('TELEFONE|CELULAR');
     var bairro=grab('BAIRRO');
     var compl=grab('COMPLEMENTO\\s+DO\\s+LOGRADOURO|COMPLEMENTO');
     var cep=grab('CEP');
     var mun=grab('MUNIC[ÍI]PIO|CIDADE');
     var natural=grab('NATURAL\\s+DE|NATURALIDADE');
-    if(end&&ehLixoTela(end))end='';
+    if(end&&(ehLixoTela(end)||!enderecoPlausivel(end)))end='';
+    /* BAIRRO na frente, como pedido: e campo proprio da consulta e vem
+       limpo. O rotulo de endereco/residencia so entra sem bairro. */
+    if(bairro)end='';
     if(!end){
       /* a consulta nem sempre traz o logradouro; então monta com o que tem,
          descartando complemento vazio ("S/N", "0") que não diz nada sozinho */
