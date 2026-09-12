@@ -335,7 +335,7 @@
 
 <header><div class="bar">
   <div class="shield">GCM</div>
-  <div><h1>Registro de Abordagens</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v58 · 06/09 destino na aba abordagem</span></p></div>
+  <div><h1>Registro de Abordagens</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v59 · 06/09 leitura do abordado em aparelho fraco</span></p></div>
   <button class="app-btn" id="app_btn" onclick="appClick()" title="Instalar o aplicativo no celular"><span class="dot"></span><span class="lbl">App</span></button>
 </div></header>
 
@@ -1493,40 +1493,75 @@
     }else arranca();
   }
 
-  function preprocess(file,cb){
+  /* ============ PREPARO DA IMAGEM DO DOCUMENTO ============
+     Dois aparelhos do pelotão liam a escala normalmente e falhavam nos prints
+     do abordado. A diferença estava aqui, e eram duas coisas somadas:
+
+     1. Quando o print já era grande, o preparo devolvia null e o arquivo ia
+        CRU para o leitor. Em alguns navegadores de Android o leitor não dá
+        conta de um arquivo, só de uma tela desenhada -- e volta vazio, sem
+        erro nenhum. A escala nunca passou por isso porque ela sempre desenha.
+     2. A segunda leitura dobrava o tamanho do print. Um print de 1080x2400
+        virava 2160x4800, mais de 10 milhões de pontos. Aparelho com pouca
+        memória não reclama: devolve a tela em branco.
+
+     Agora o caminho é o mesmo da escala -- sempre desenha, com teto de
+     tamanho -- e a tela é conferida antes de ir para o leitor. */
+
+  var DOC_MAXPX=6000000;          /* teto de pontos: o dobro disso ja falha */
+
+  function docCanvas(file,ladoAlvo,cb){
     var img=new Image();
     img.onload=function(){
       try{
-        var w=img.naturalWidth||img.width,h=img.naturalHeight||img.height,minSide=Math.min(w,h);
-        // screenshots já são nítidos: usa o original sem alterar (evita embaralhar texto fino)
-        if(minSide>=1000){cb(null);return;}
-        var scale=Math.min(2.5,1400/minSide),cw=Math.round(w*scale),ch=Math.round(h*scale),MAXP=4000*4000;
-        if(cw*ch>MAXP){var r=Math.sqrt(MAXP/(cw*ch));cw=Math.round(cw*r);ch=Math.round(ch*r)}
+        var w=img.naturalWidth||img.width,h=img.naturalHeight||img.height;
+        if(!w||!h){cb(null);return}
+        var sc=ladoAlvo/Math.max(w,h);
+        if(sc>3)sc=3;
+        var cw=Math.round(w*sc),ch=Math.round(h*sc);
+        if(cw*ch>DOC_MAXPX){var r=Math.sqrt(DOC_MAXPX/(cw*ch));cw=Math.round(cw*r);ch=Math.round(ch*r)}
+        if(cw<1||ch<1){cb(null);return}
         var c=document.createElement('canvas');c.width=cw;c.height=ch;
-        var ctx=c.getContext('2d');ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+        var ctx=c.getContext('2d',{willReadFrequently:true});
+        ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
         ctx.drawImage(img,0,0,cw,ch);
+        if(docCanvasVazio(ctx,cw,ch)){cb(null);return}
         cb(c);
       }catch(e){cb(null)}
     };
     img.onerror=function(){cb(null)};
     try{img.src=URL.createObjectURL(file)}catch(e){cb(null)}
   }
-  function upscale2x(file,cb){
-    var img=new Image();
-    img.onload=function(){
-      try{
-        var w=img.naturalWidth||img.width,h=img.naturalHeight||img.height;
-        var sc=2,MAXP=4000*4000;
-        var cw=Math.round(w*sc),ch=Math.round(h*sc);
-        if(cw*ch>MAXP){var r=Math.sqrt(MAXP/(cw*ch));cw=Math.round(cw*r);ch=Math.round(ch*r)}
-        var c=document.createElement('canvas');c.width=cw;c.height=ch;
-        var ctx=c.getContext('2d');ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
-        ctx.drawImage(img,0,0,cw,ch);cb(c);
-      }catch(e){cb(null)}
-    };
-    img.onerror=function(){cb(null)};
-    try{img.src=URL.createObjectURL(file)}catch(e){cb(null)}
+
+  /* Tela em branco não dá erro: ela simplesmente sai toda da mesma cor.
+     Vale a pena pegar isso aqui, senão o leitor trabalha à toa e o guarda
+     leva a mensagem errada de "print pouco nítido". */
+  function docCanvasVazio(ctx,w,h){
+    try{
+      var d=ctx.getImageData(0,0,w,h).data,n=w*h,passo=Math.max(1,(n/4000)|0);
+      var min=255,max=0;
+      for(var i=0;i<n;i+=passo){
+        var g=(d[i*4]*0.299+d[i*4+1]*0.587+d[i*4+2]*0.114)|0;
+        if(g<min)min=g;
+        if(g>max)max=g;
+        if(max-min>25)return false;      /* tem contraste: serve */
+      }
+      return true;
+    }catch(e){return false}
   }
+
+  /* 1ª leitura: tamanho parecido com o da escala, que e o que funciona. */
+  function preprocess(file,cb){docCanvas(file,2400,function(c){
+    if(c){cb(c);return}
+    docCanvas(file,1400,cb);          /* aparelho apertado: tenta menor */
+  })}
+
+  /* 2ª leitura: um pouco maior, para linha fina. Nada de dobrar sem teto. */
+  function upscale2x(file,cb){docCanvas(file,3200,function(c){
+    if(c){cb(c);return}
+    docCanvas(file,1800,cb);
+  })}
+
   var ESC_BEST='https://tessdata.projectnaptha.com/4.0.0_best';
   var OCRDATA=null;
   /* Mesmo motor do leitor de escala: modelo "best", mais preciso que o padrão.
@@ -1613,7 +1648,12 @@
     OCRDATA=null;
     st.textContent='Preparando imagem…';st.style.color='var(--muted)';
     preprocess(file,function(canvas){
-      var src1=canvas||file;
+      /* sem tela desenhada nao adianta seguir: o leitor volta vazio */
+      if(!canvas){
+        st.textContent='Não consegui preparar a imagem neste aparelho. Reduza o print (recorte só a ficha) e tente de novo.';
+        st.style.color='var(--warn)';pronto();return;
+      }
+      var src1=canvas;
       ocrOnce(src1,st,'1/2').then(function(t1){
         var f1=t1?parseFields(t1):null;
         // 2ª leitura ampliada — ajuda em linhas finas que saem embaralhadas
@@ -1624,7 +1664,12 @@
             blk.querySelector('.ocr-raw').textContent=(t1||'(nada reconhecido)')+(t2?'\n\n--- 2ª leitura (ampliada) ---\n'+t2:'');
             var f=mergeFields(f1||f2,f2);
             if(f){var hp=horaDoPrint(OCRDATA,(t1||'')+'\n'+(t2||''));if(hp)f.hora=hp}
-            if(!f){st.textContent='Falha ao ler a imagem. Tente um print mais nítido.';st.style.color='var(--warn)';pronto();return}
+            if(!f){
+              st.textContent=(t1||t2)
+                ? 'Li o texto, mas não reconheci os campos. Veja "texto lido pela foto" e preencha à mão.'
+                : 'O leitor não extraiu texto nenhum. Recorte só a área da ficha, sem a barra do celular, e tente de novo.';
+              st.style.color='var(--warn)';pronto();return;
+            }
             var r=applyFields(f,blk);
             if(r.found.length){
               var msg='Preenchido: '+r.found.join(', ')+'.';
