@@ -335,7 +335,7 @@
 
 <header><div class="bar">
   <div class="shield">GCM</div>
-  <div><h1>Registro de Abordagens</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v57 · 06/09 hospitais estaduais e federais</span></p></div>
+  <div><h1>Registro de Abordagens</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v58 · 06/09 destino na aba abordagem</span></p></div>
   <button class="app-btn" id="app_btn" onclick="appClick()" title="Instalar o aplicativo no celular"><span class="dot"></span><span class="lbl">App</span></button>
 </div></header>
 
@@ -440,6 +440,7 @@
     </div></section>
     <div id="conc_ab_result"></div>
     <button class="concluir-btn" onclick="concluirAbordagem()">✓ Concluir abordagem</button>
+    <section><div class="sec-head"><h2>Destino — D.P., central e socorro</h2></div><div class="sec-body"><div class="hint">Preenchido sozinho a partir do <b>local da abordagem</b>. A busca de hospital fica no botão, porque nem toda abordagem precisa dela.</div><div class="acoes-linha"><button type="button" class="gps-btn" onclick="dpAchar()">📍 Achar o D.P. pela circunscrição</button><button type="button" class="gps-btn" id="dp_rota" style="display:none" onclick="dpRota()">🧭 Traçar rota até o D.P.</button><button type="button" class="gps-btn" id="cf_rota" style="display:none" onclick="cfRota()">⚖️ Traçar rota até a central</button><div class="hint" id="dp_status"></div><button type="button" class="gps-btn" onclick="psAchar()">🚑 Buscar hospital / UPA mais perto</button><div class="hint" id="ps_status"></div><div id="ps_lista"></div></div></div></section>
 
     <section><div class="sec-head"><h2>Envio ao Google Forms</h2></div><div class="sec-body">
       <div class="hint">Ao concluir a abordagem o envio é automático. Este botão serve só para conferir se este aparelho está conseguindo enviar — manda uma linha de teste com o nome <b>TESTE-APP</b>, que depois é só apagar da planilha.</div>
@@ -595,7 +596,7 @@
       <div id="blk_policial" style="display:none">
         <div class="row">
           <div class="field"><label>B.O. / T.C. Nº</label><input id="f_bo" oninput="build()"></div>
-          <div class="field"><label>D.P.</label><input id="f_dp" list="dp_dl" placeholder="Escolha ou toque em achar" oninput="build()"><datalist id="dp_dl"></datalist></div></div><div class="field"><label>Central de flagrantes</label><input id="f_central_flag" placeholder="Preenchida pela área, quando cadastrada" oninput="build()"></div><div class="acoes-linha"><button type="button" class="gps-btn" onclick="dpAchar()">📍 Achar o D.P. pela circunscrição</button><button type="button" class="gps-btn" id="dp_rota" style="display:none" onclick="dpRota()">🧭 Traçar rota até o D.P.</button><button type="button" class="gps-btn" id="cf_rota" style="display:none" onclick="cfRota()">⚖️ Traçar rota até a central</button><div class="hint" id="dp_status"></div><button type="button" class="gps-btn" onclick="psAchar()">🚑 Buscar hospital / UPA mais perto</button><div class="hint" id="ps_status"></div><div id="ps_lista"></div></div>
+          <div class="field"><label>D.P.</label><input id="f_dp" list="dp_dl" placeholder="Escolha ou toque em achar" oninput="build()"><datalist id="dp_dl"></datalist></div></div><div class="field"><label>Central de flagrantes</label><input id="f_central_flag" placeholder="Preenchida pela área, quando cadastrada" oninput="build()"></div>
       </div>
       <div id="blk_socorro" style="display:none">
         <div class="field"><label>Nome da unidade de emergência</label><input id="f_soc_unidade" oninput="build()"></div>
@@ -1088,6 +1089,22 @@
       }).catch(function(){});
   }
 
+  /* O local da abordagem vem numa linha so, com o CEP grudado no fim:
+     "RUA X, 123 - BAIRRO - CEP 05860-000". No R.O. o CEP tem campo proprio,
+     entao aqui ele e separado: vai para o campo certo e sai do texto do
+     local, que fica limpo. */
+  function separaCEP(txt){
+    var t=String(txt||'');
+    var m=t.match(/CEP\s*:?\s*(\d{5})[\s.\-]?(\d{3})/i)||t.match(/\b(\d{5})-(\d{3})\b/);
+    if(!m)return {local:t.trim(),cep:''};
+    var cep=m[1]+'-'+m[2];
+    var limpo=t.replace(m[0],'')
+               .replace(/[\s\u2014\-,;]+$/,'')      /* sobra de traço no fim */
+               .replace(/\s{2,}/g,' ')
+               .trim();
+    return {local:limpo,cep:cep};
+  }
+
   function roAbrir(cfg){
     var feito=[],jaTinha=[];
     function põe(id,val,rot){
@@ -1112,7 +1129,15 @@
     var locEl=document.getElementById('f_local'),locNovo=false;
     if(loc&&locEl){
       if(locEl.value)jaTinha.push('Local da ocorrência');
-      else{locEl.value=loc;feito.push('Local da ocorrência');locNovo=true}
+      else{
+        var sep=separaCEP(loc);
+        locEl.value=sep.local;feito.push('Local da ocorrência');locNovo=true;
+        loc=sep.local;
+        if(sep.cep){
+          var cepEl=document.getElementById('f_cep');
+          if(cepEl&&!cepEl.value){cepEl.value=sep.cep;feito.push('CEP')}
+        }
+      }
     }
     if(hora){
       var dt=document.getElementById('f_dt');
@@ -2071,6 +2096,7 @@
 
   function showGps(box,addr,la,lo,motivo){
     ULT_GPS={la:la,lo:lo};
+    try{dpAuto()}catch(e){}
     var coords=la.toFixed(6)+', '+lo.toFixed(6);
     box.dataset.val=addr||coords;
     box.innerHTML='<div class="gps-found">'+
@@ -6411,8 +6437,8 @@
       },st);
     }
     if(ULT_GPS){st.textContent='Calculando…';comPonto(ULT_GPS.la,ULT_GPS.lo,'GPS da abordagem');return}
-    var loc=v('f_local');
-    if(!loc){st.textContent='Preencha o local da ocorrência primeiro.';st.style.color='var(--warn)';return}
+    var loc=dpLocal();
+    if(!loc){st.textContent='Preencha o local da abordagem primeiro.';st.style.color='var(--warn)';return}
     st.textContent='Procurando o endereço…';st.style.color='var(--muted)';
     geoBusca(loc.split('—')[0].trim()+', São Paulo, SP')
       .then(function(g){comPonto(g.la,g.lo,'endereço do local')})
@@ -6469,16 +6495,34 @@
      da abordagem ou lançado pelo R.O. automático — ele procura o DP. Espera
      a digitação parar para não consultar a cada tecla. */
   var DP_TIMER=null,DP_ULT='',DP_AUTO=false,DP_ATUAL=null,CF_ATUAL='';
+
+  /* O endereço de referência agora é o LOCAL DA ABORDAGEM. É ele que o
+     guarda preenche primeiro, e é na rua que a pergunta aparece: para qual
+     D.P. eu levo, e qual central atende. O local da ocorrência fica de
+     reserva, para quando o R.O. for aberto direto, sem abordagem. */
+  function dpLocal(){
+    var loc='';
+    try{segObjs('abordado').forEach(function(a){if(!loc&&a.local)loc=a.local})}catch(e){}
+    return loc||v('f_local');
+  }
   function dpAuto(){
     clearTimeout(DP_TIMER);
     DP_TIMER=setTimeout(function(){
-      var loc=v('f_local');
-      if(!loc||loc===DP_ULT)return;
+      var loc=dpLocal();
+      if((!loc&&!ULT_GPS)||loc===DP_ULT)return;
       var el=document.getElementById('f_dp');
       if(el&&el.value&&!DP_AUTO)return;      /* você lançou à mão: não mexo */
       DP_ULT=loc;dpAchar(true);
     },900);
   }
+  /* qualquer local de abordagem digitado dispara a busca, inclusive nos
+     blocos que o app cria depois */
+  ['input','change'].forEach(function(ev){
+    document.addEventListener(ev,function(e){
+      var t=e.target;
+      if(t&&t.closest&&t.matches&&t.matches('[data-k="local"]')&&t.closest('#tab_abord'))dpAuto();
+    },true);
+  });
 
   function dpAchar(auto){
     var st=document.getElementById('dp_status'),el=document.getElementById('f_dp');
@@ -6506,8 +6550,8 @@
       dpBotaoRota();
     }
     if(ULT_GPS){poe(dpPorPonto(ULT_GPS.la,ULT_GPS.lo),'GPS da abordagem');return}
-    var loc=v('f_local');
-    if(!loc){if(!auto){st.textContent='Preencha o local da ocorrência primeiro.';st.style.color='var(--warn)'}return}
+    var loc=dpLocal();
+    if(!loc){if(!auto){st.textContent='Preencha o local da abordagem primeiro.';st.style.color='var(--warn)'}return}
     st.textContent='Procurando o endereço…';st.style.color='var(--muted)';
     geoBusca(loc.split('—')[0].trim()+', São Paulo, SP')
       .then(function(g){poe(dpPorPonto(g.la,g.lo),'endereço do local')})
