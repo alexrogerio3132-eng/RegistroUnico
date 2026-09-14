@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Registro de Abordagens — GCM</title>
+<title>Registro Único — GCM</title>
 <link rel="manifest" href="manifest.json">
 <meta name="robots" content="noindex, nofollow, noarchive">
 <meta name="theme-color" content="#11224D">
@@ -61,9 +61,13 @@
   .del{position:absolute;top:8px;right:8px;background:none;border:none;color:var(--faint);font-size:18px;cursor:pointer;padding:2px 6px;line-height:1}
   .del:hover{color:#e06b6b}
   .gblock label,.grp label{font-size:10px}
-  .btn-add{width:100%;background:transparent;border:1px dashed var(--line);color:var(--muted);border-radius:9px;
-    padding:10px;font:inherit;font-size:13px;cursor:pointer}
-  .btn-add:hover{border-color:var(--accent);color:var(--accent)}
+  /* Botao de acao tem um padrao so no app: contorno e texto em azul claro,
+     como o "Buscar por GPS". Antes o .btn-add era tracejado e cinza, o que
+     fazia "Limpar abordagem" e "+ Adicionar abordado" parecerem de outra
+     familia -- e botao apagado o guarda simplesmente nao ve na rua. */
+  .btn-add{width:100%;background:var(--surface-2);border:1px solid var(--accent);color:var(--accent);
+    border-radius:8px;padding:10px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+  .btn-add:hover{background:var(--accent-dim)}
   .qual-field select{border-color:var(--accent-dim);background:#14243B;font-weight:600}
   .toggle{display:flex;gap:8px}
   .toggle button{flex:1;background:var(--surface-2);border:1px solid var(--line);color:var(--muted);border-radius:8px;
@@ -102,6 +106,15 @@
   .ocr-raw{white-space:pre-wrap;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:var(--muted);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px;margin-top:6px;max-height:160px;overflow:auto}
   .gps-btn{margin-top:8px;width:100%;background:var(--surface-2);border:1px solid var(--accent);color:var(--accent);border-radius:8px;padding:10px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
   .gps-btn:hover{background:var(--accent-dim)}
+  /* lista vertical dos campos com opções (no lugar da barrinha do teclado) */
+  .cb-lista{position:absolute;z-index:9999;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    background:var(--surface-2);border:1px solid var(--accent);border-radius:10px;
+    box-shadow:0 10px 26px rgba(0,0,0,.55);padding:4px}
+  .cb-item{padding:12px 12px;font-size:14.5px;color:var(--ink);border-radius:7px;
+    cursor:pointer;line-height:1.35;border-bottom:1px solid rgba(255,255,255,.05)}
+  .cb-item:last-child{border-bottom:none}
+  .cb-item:active,.cb-item.sel{background:var(--accent-dim);color:var(--accent)}
+  .cb-mais{padding:10px 12px;font-size:12px;color:var(--faint);text-align:center}
   .gps-box{margin-top:8px}
   /* botoes de acao em coluna, largura cheia e espacamento igual */
   .acoes-linha{display:flex;flex-direction:column;gap:8px;margin-top:12px}
@@ -335,7 +348,7 @@
 
 <header><div class="bar">
   <div class="shield">GCM</div>
-  <div><h1>Registro de Abordagens</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v60 · 06/09 endereço pelo bairro</span></p></div>
+  <div><h1>Registro Único</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v64 · 06/09 limpeza de código</span></p></div>
   <button class="app-btn" id="app_btn" onclick="appClick()" title="Instalar o aplicativo no celular"><span class="dot"></span><span class="lbl">App</span></button>
 </div></header>
 
@@ -442,12 +455,7 @@
     <button class="concluir-btn" onclick="concluirAbordagem()">✓ Concluir abordagem</button>
     <section><div class="sec-head"><h2>Destino — D.P., central e socorro</h2></div><div class="sec-body"><div class="hint">Preenchido sozinho a partir do <b>local da abordagem</b>. A busca de hospital fica no botão, porque nem toda abordagem precisa dela.</div><div class="acoes-linha"><button type="button" class="gps-btn" onclick="dpAchar()">📍 Achar o D.P. pela circunscrição</button><button type="button" class="gps-btn" id="dp_rota" style="display:none" onclick="dpRota()">🧭 Traçar rota até o D.P.</button><button type="button" class="gps-btn" id="cf_rota" style="display:none" onclick="cfRota()">⚖️ Traçar rota até a central</button><div class="hint" id="dp_status"></div><button type="button" class="gps-btn" onclick="psAchar()">🚑 Buscar hospital / UPA mais perto</button><div class="hint" id="ps_status"></div><div id="ps_lista"></div></div></div></section>
 
-    <section><div class="sec-head"><h2>Envio ao Google Forms</h2></div><div class="sec-body">
-      <div class="hint">Ao concluir a abordagem o envio é automático. Este botão serve só para conferir se este aparelho está conseguindo enviar — manda uma linha de teste com o nome <b>TESTE-APP</b>, que depois é só apagar da planilha.</div>
-      <button type="button" class="btn-add" style="margin-top:10px" onclick="gfTeste()">🧪 Testar envio agora</button>
-      <div id="gf_teste_res" style="font-size:12.5px;margin-top:8px;line-height:1.6"></div>
-      <button class="btn-add" style="margin-top:14px" onclick="limparAbordagem()">🗑️ Limpar abordagem</button>
-    </div></section>
+    <section><div class="sec-body"><button class="btn-add" onclick="limparAbordagem()">🗑️ Limpar abordagem</button></div></section>
   </div>
 
   <!-- ===== EQUIPE ===== -->
@@ -2044,7 +2052,7 @@
     }
     return {found:found,susp:susp,kept:kept};
   }
-  function parseDoc(text,blk){return applyFields(parseFields(text),blk).found}
+
 
   /* ---- GPS (localização + endereço) ---- */
   /* ============ CONSULTAS DE ENDERECO ============
@@ -2931,11 +2939,6 @@
     });
     if (idxFil < 0) { antes = nomes; depois = []; }
 
-    function maisPesado(lista){
-      var m = null;
-      lista.forEach(function(n){ if (!m || cnhPeso(n.nome) > cnhPeso(m.nome)) m = n; });
-      return m;
-    }
     var validos = antes.filter(function(n){ return pareceNome(n.nome) });
     /* A CNH escreve "2 e 1 NOME E SOBRENOME" e o nome vem logo abaixo. Quem
        aparece nas duas linhas seguintes a essa âncora ganha peso. */
@@ -2971,9 +2974,6 @@
     return r;
   }
 
-  function ehCNH(t){
-    return /HABILITA[ÇC][ÃA]O|DRIVER\s+LICENSE|CONDUCCI[ÓO]N|CAT\.?\s*HAB/i.test(t || '');
-  }
 
   /* Cada passada do OCR erra num lugar diferente, mas acerta em outro. Em vez de
      escolher UMA passada, junta-se campo a campo: vence o valor que mais se
@@ -3489,20 +3489,7 @@
   /* Sem RF não há número para confirmar que a linha é de gente, então o nome
      precisa ser convincente: caixa alta, ao menos uma palavra com corpo e
      vogais espalhadas. Isso barra "ENS ENS" e "aaa LA dad". */
-  function escNomeForte(n){
-    n=String(n||'').trim();
-    if(!n)return false;
-    var pal=n.split(/\s+/).map(function(w){return w.replace(/[^A-Za-zÀ-Ý]/g,'')})
-             .filter(function(w){return w.length>=2});
-    if(!pal.length)return false;
-    if(!pal.some(function(w){return w.length>=4}))return false;
-    var junto=pal.join('');
-    if(junto!==junto.toUpperCase())return false;              /* nome vem em caixa alta */
-    var vog=(junto.match(/[AEIOUÁÀÂÃÉÊÍÓÔÕÚ]/g)||[]).length;
-    if(vog/junto.length<0.22)return false;
-    if(/[BCDFGHJKLMNPQRSTVWXYZ]{5,}/.test(junto))return false;
-    return true;
-  }
+
 
   function escMonta(linhas,estrito){
     var gts=[],gt=null,gu=null,postoPend='',ultimo=null;
@@ -4244,13 +4231,7 @@
     return '<table>'+rows+'</table>'}
   function pKVne(pairs){return pKV(pairs.filter(function(p){return p[1]&&(''+p[1]).trim()}))}
   function pSec(t){return '<div class="sec">'+esc(t)+'</div>'}
-  function segPrint(name,title){
-    var objs=segObjs(name);if(!objs.length)return '';
-    var h=pSec(title);
-    objs.forEach(function(o,i){var pairs=DEFS[name].map(function(d){return [d.label,o[d.k]]});
-      h+='<div class="pblk"><div class="pbh">Item '+(i+1)+'</div>'+pKVne(pairs)+'</div>'});
-    return h;
-  }
+
   function CK(on){return on?'☒':'☐'}
   function ock(val,t){return '<span class="cbx">'+CK(String(val||'').trim().toLowerCase()===t.toLowerCase())+' '+t+'</span>'}
   function ick(csv,t){return '<span class="cbx">'+CK(String(csv||'').toLowerCase().indexOf(t.toLowerCase())>=0)+' '+t+'</span>'}
@@ -4524,24 +4505,7 @@
   /* ================= LEITOR DE ESCALA (recorte + 3 leituras + confiança) ============== */
   var ESC={img:null,scale:1,sel:null,drag:null,res:null};
   function escClose(){document.getElementById('esc_modal').classList.remove('on')}
-  function escalaFile(inp){
-    var f=inp.files&&inp.files[0];if(!f)return;
-    var img=new Image();
-    img.onload=function(){
-      ESC.img=img;ESC.sel=null;
-      var cv=document.getElementById('esc_canvas'),maxW=Math.min(window.innerWidth-40,900);
-      ESC.scale=Math.min(1,maxW/img.naturalWidth);
-      cv.width=Math.round(img.naturalWidth*ESC.scale);
-      cv.height=Math.round(img.naturalHeight*ESC.scale);
-      escDraw();
-      document.getElementById('esc_preview').innerHTML='';
-      document.getElementById('esc_hint').innerHTML='Arraste sobre as linhas da <b>sua guarnição</b> (ENC, MOT, AUX) para recortar. Quanto menor a área, maior a precisão.';
-      document.getElementById('esc_modal').classList.add('on');
-      escBind();
-    };
-    img.onerror=function(){alert('Não consegui abrir a imagem.')};
-    img.src=URL.createObjectURL(f);
-  }
+
   function escDraw(){
     var cv=document.getElementById('esc_canvas'),ctx=cv.getContext('2d');
     ctx.clearRect(0,0,cv.width,cv.height);
@@ -4614,18 +4578,7 @@
     return c;
   }
   /* escolhe o valor mais confiável entre as leituras */
-  function escPick(vals){
-    var v=vals.filter(function(x){return x&&String(x).trim()});
-    if(!v.length)return {v:'',cf:0};
-    /* conta votos preservando a ordem em que apareceram -- Object.keys() reordena chaves
-       que parecem número inteiro (tipo "28") pra vir antes de "2º", o que bagunçava o
-       desempate mesmo quando "2º" tinha aparecido primeiro */
-    var order=[],cnt={};
-    v.forEach(function(x){if(!Object.prototype.hasOwnProperty.call(cnt,x)){cnt[x]=0;order.push(x)}cnt[x]++});
-    var best='',n=0;
-    order.forEach(function(k){if(cnt[k]>n||(cnt[k]===n&&k.length>best.length)){best=k;n=cnt[k]}});
-    return {v:best,cf:n>=2?2:1};
-  }
+
   function escRun(useSel){
     if(useSel&&!ESC.sel){alert('Arraste sobre as linhas da sua guarnição primeiro, ou use "Ler tudo".');return}
     if(!useSel)ESC.sel=null;
@@ -4663,15 +4616,7 @@
     },function(){hint.textContent='Não consegui carregar o leitor. Verifique a internet.'});
   }
   /* lista as guarnições encontradas para o usuário escolher a dele */
-  function escLista(){
-    var h='<div class="hint" style="margin:12px 0 6px">Toque na guarnição correta:</div>';
-    ESC.grupos.forEach(function(g,i){
-      var membros=['enc','mot','a1','a2'].map(function(k){return g[k]?g[k].full:''}).filter(Boolean);
-      h+='<button type="button" class="esc-grp" onclick="escSel('+i+')">'+
-         '<b>'+esc(membros[0]||'(sem nome)')+'</b><span>'+esc(membros.slice(1).join(' · '))+'</span></button>';
-    });
-    document.getElementById('esc_preview').innerHTML=h;
-  }
+
   function escSel(i){
     var g=escCompleta(ESC.grupos[i],i),res={};
     ['enc','mot','a1','a2'].forEach(function(k){if(g[k])res[k]={n:g[k].full||'',rf:g[k].rf||'',cf:(g[k].full&&g[k].rf)?2:1}});
@@ -4852,76 +4797,8 @@
       return {B:'8',O:'0',Q:'0',I:'1',L:'1',S:'5',Z:'2',G:'6',T:'7'}[ch.toUpperCase()]||ch;
     });
   }
-  function escalaFromWords(words){
-    if(!words||!words.length)return null;
-    var byLine={};
-    words.forEach(function(w){(byLine[w.ln]=byLine[w.ln]||[]).push(w)});
-    var out={enc:null,mot:null,a1:null,a2:null},auxN=0,achou=false;
-    Object.keys(byLine).sort(function(a,b){return a-b}).forEach(function(k){
-      var ws=byLine[k].slice().sort(function(a,b){return a.x-b.x});
-      var ri=-1,role='';
-      for(var i=0;i<ws.length;i++){
-        var m=ws[i].t.toUpperCase().replace(/[^A-Z]/g,'');
-        if(m==='ENC'||m==='MOT'||m==='AUX'){ri=i;role=m;break}
-      }
-      if(ri<0)return;
-      /* RF: palavra à direita com 8+ dígitos (corrigindo B->8, O->0, etc.) */
-      var rf='',rfi=-1;
-      for(var j2=ri+1;j2<ws.length;j2++){
-        var raw=ws[j2].t;
-        if((raw.replace(/\D/g,'').length)<4)continue;      /* não é campo numérico */
-        var d=digitFix(raw).replace(/\D/g,'');
-        if(d.length>=8){rf=d.slice(0,7);rfi=j2;break}
-        if(d.length>=7&&rfi<0){rf=d.slice(0,7);rfi=j2}
-      }
-      if(rf)rf=rf.slice(0,3)+'.'+rf.slice(3,6)+'.'+rf.slice(6);
-      /* NOME: para em número, em 2ª graduação ou em salto de coluna */
-      var grad='',nome=[],prevEnd=null,prevCharW=null;
-      for(var n=(rfi>=0?rfi+1:ri+1);n<ws.length;n++){
-        var wd=ws[n],tk=wd.t.replace(/[^A-Za-zÀ-ÿº°]/g,'');
-        if(!tk)continue;
-        if(prevEnd!=null){
-          var gap=wd.x-prevEnd, lim=Math.max(120,(prevCharW||60)*2.2);
-          if(gap>lim)break;                                  /* saltou para outra coluna */
-        }
-        if(/\d/.test(wd.t)&&nome.length)break;
-        var g=gradNorm(tk),sp=splitGrad(tk);
-        if(!grad){
-          if(g){grad=g;prevEnd=wd.x1;prevCharW=(wd.x1-wd.x)/Math.max(1,tk.length);continue}
-          if(sp){grad=sp[0];nome.push(sp[1]);prevEnd=wd.x1;prevCharW=(wd.x1-wd.x)/Math.max(1,tk.length);continue}
-        } else if(g)break;
-        if(tk.length<3)break;
-        if(!/^[A-ZÀ-Ý]+$/.test(tk))break;
-        nome.push(tk.toUpperCase());
-        prevEnd=wd.x1;prevCharW=(wd.x1-wd.x)/Math.max(1,tk.length);
-        if(nome.length>=3)break;
-      }
-      var o={grad:grad,nome:nome.join(' '),rf:rf};
-      if(!o.grad&&!o.nome&&!o.rf)return;
-      achou=true;
-      if(role==='ENC'){if(!out.enc)out.enc=o}
-      else if(role==='MOT'){if(!out.mot)out.mot=o}
-      else{auxN++;if(auxN===1&&!out.a1)out.a1=o;else if(auxN===2&&!out.a2)out.a2=o}
-    });
-    return achou?out:null;
-  }
-  function escalaCombina(txtLetras,txtNums,txtGeral){    var nomes=escalaNomes(txtLetras),rfs=escalaRFs(txtNums);
-    var ger=txtGeral?escalaFields(txtGeral):null;
-    var out={enc:null,mot:null,a1:null,a2:null},auxN=0;
-    nomes.forEach(function(item,idx){
-      var slot;
-      if(item.role==='ENC')slot='enc';
-      else if(item.role==='MOT')slot='mot';
-      else{auxN++;slot=(auxN===1)?'a1':(auxN===2?'a2':null)}
-      if(!slot||out[slot])return;
-      var g=ger?ger[slot]:null;
-      var nome=(g&&g.n)?g.n:item.n;        /* nome: leitura geral tem prioridade (menos ruído) */
-      var rf=rfs[idx]||(g?g.rf:'')||'';    /* RF: passada numérica tem prioridade */
-      if(nome||rf)out[slot]={n:nome,rf:rf};
-    });
-    if(ger){['enc','mot','a1','a2'].forEach(function(k){if(!out[k]&&ger[k])out[k]=ger[k]})}
-    return out;
-  }
+
+
   function escalaFields(text){
     var flat=String(text||'').replace(/\s+/g,' ').trim();
     var out={enc:null,mot:null,a1:null,a2:null},auxN=0;
@@ -4942,25 +4819,8 @@
     });
     return out;
   }
-  function escScore(f){
-    var sc=0;
-    ['enc','mot','a1','a2'].forEach(function(k){
-      var o=f[k];if(!o)return;
-      if(o.rf)sc+=2;
-      if(o.n){sc+=2;if(/^(3º|2º|1º)?CL|^(CE|CD|SI|INSP|ID|IA|IS)\b/.test(o.n))sc+=1}
-    });
-    return sc;
-  }
-  function escMerge(a,b){
-    if(!b)return a;if(!a)return b;
-    var out={};
-    ['enc','mot','a1','a2'].forEach(function(k){
-      var x=a[k],y=b[k];
-      if(!x){out[k]=y;return}if(!y){out[k]=x;return}
-      out[k]={n:(x.n&&x.n.length>=(y.n||'').length)?x.n:(y.n||x.n),rf:x.rf||y.rf};
-    });
-    return out;
-  }
+
+
   function escApply(f){
     var got=[];
     function put(o,idN,idR,label){
@@ -4975,7 +4835,7 @@
     put(f.a2,'f_a2','f_a2_rf','2º Auxiliar');
     return got;
   }
-  function parseEscala(text){return escApply(escalaFields(text))}
+
 
 
   /* ---- trava: só libera os campos depois de iniciar o cronômetro ---- */
@@ -4990,19 +4850,7 @@
     var av=document.getElementById(k+'_aviso');
     if(av&&av.classList.contains('lock-msg'))av.style.display='none';
   }
-  function lockTabAntigo(k,on){
-    var pane=document.getElementById(PANEID[k]);if(!pane)return;
-    pane.querySelectorAll('input,select,textarea,button').forEach(function(el){
-      if(el.closest('.tm-row'))return;
-      /* a caixa de resultado tem botões de reenvio e correção: nunca travar */
-      if(el.closest('#conc_ab_result')||el.closest('#conc_oc_result')||el.closest('#op_result'))return;
-      /* o histórico é consulta e reenvio: nada a ver com o cronômetro */
-      if(el.closest('#hist_wrap')||el.id==='hist_btn')return;             /* botão do cronômetro sempre ativo */
-      el.disabled=!!on;
-    });
-    var av=document.getElementById(k+'_aviso');
-    if(av)av.style.display=on?'block':'none';
-  }
+
   function lockAll(){lockTab('ab',false);lockTab('oc',false);lockTab('op',false)}
 
   /* ---- limpa a abordagem, mantendo área de patrulhamento e equipe ---- */
@@ -5159,19 +5007,9 @@
     return {role:role,rf:rf,grad:grad,nome:nm,full:(grad?grad+' ':'')+nm};
   }
   /* agrupa linhas seguidas em guarnições */
-  function soGrad(n){var t=String(n||'').trim();return !t||/^(CE|CD|SI|ID|IA|IS|INSP|SUB|[123]ª)$/i.test(t)}
+
   /* converte a leitura antiga (por texto/rótulo) para o mesmo formato, como 2º voto */
-  function v3Legado(texto){
-    var f=escalaFields(String(texto||''));if(!f)return null;
-    var g={};var tem=false;
-    ['enc','mot','a1','a2'].forEach(function(k){
-      if(!f[k])return;
-      var nome=f[k].nome||'',grad=f[k].grad||'';
-      if(!nome&&!f[k].rf)return;
-      g[k]={role:'',rf:f[k].rf||'',grad:grad,nome:nome,full:(grad?grad+' ':'')+nome};tem=true;
-    });
-    return tem?g:null;
-  }
+
   function v3Grupos(linhas){
     var gs=[],at=[];
     function fecha(){
@@ -5200,19 +5038,7 @@
     fecha();
     return gs;
   }
-  function v3Ler(data){
-    var linhas=[];
-    var ws=data?escalaWords(data):[];
-    if(ws.length){
-      var byLine={};ws.forEach(function(w){(byLine[w.ln]=byLine[w.ln]||[]).push(w)});
-      Object.keys(byLine).sort(function(a,b){return a-b}).forEach(function(k){linhas.push(v3Linha(byLine[k]))});
-    }
-    var comPos=linhas.filter(Boolean).length;
-    if(comPos<2&&data&&data.text){
-      linhas=String(data.text).split('\n').map(v3LinhaTexto);
-    }
-    return v3Grupos(linhas);
-  }
+
 
 
   /* ================== LEITOR DE ESCALA — POR PADRÃO ==================
@@ -5772,7 +5598,9 @@
   /* Diagnóstico de envio: diz em qual etapa parou, em vez de deixar o guarda
      adivinhando por que a linha não apareceu na planilha. */
   function gfTeste(){
-    var res=document.getElementById('gf_teste_res');
+    /* o bloco de teste saiu da aba Abordagem; se o destino nao existir mais,
+       a funcao nao pode quebrar o resto da tela */
+    var res=document.getElementById('gf_teste_res')||{style:{}};
     function di(txt,cor){res.innerHTML=txt;res.style.color=cor||'var(--muted)'}
     var c=gfCfg();
     if(!c.url){di('✗ Nenhum endereço de formulário configurado nesta aba. Cole o link e leia as perguntas.','var(--warn)');return}
@@ -6618,17 +6446,153 @@
       .catch(function(){if(!auto){st.textContent='Não encontrei esse endereço. Lance o D.P. à mão.';st.style.color='var(--warn)'}});
   }
 
-  function clearAll(){
-    if(!confirm('Apagar todos os dados desta ocorrência?'))return;
-    pushHist(v('f_hist'));
-    document.querySelectorAll('input,textarea').forEach(function(e){if(e.classList.contains('keep'))return;if(e.type==='checkbox')e.checked=false;else if(e.type!=='file')e.value=''});
-    document.getElementById('f_unidade').value='ROMU';document.getElementById('f_rdp').value='NENHUM';document.getElementById('f_ose').value='NENHUMA';
-    document.getElementById('cep_status').textContent='';
-    PARTES.slice().forEach(delParte);apoio.slice().forEach(delApoio);setApoio(false);FOTOS={};
-    Object.keys(SEG).forEach(function(n){SEG[n].ids.slice().forEach(function(id){segDel(n,id)});var hb=document.getElementById('has_'+n);if(hb){hb.checked=false;toggleSeg(n)}});
-    document.querySelectorAll('.fprev').forEach(function(p){p.style.display='none';p.src=''});
-    segAdd('abordado');addParte();toggleTipo();build();renderRecent();renderStats();window.scrollTo({top:0,behavior:'smooth'});
+  /* ============ LISTA VERTICAL DOS CAMPOS COM OPÇÕES ============
+     O <datalist> do HTML, no Android, não abre lista nenhuma: ele joga as
+     opções naquela barrinha horizontal em cima do teclado, onde cabem três
+     e o resto some. Com 174 naturezas e 112 delegacias isso é inútil.
+
+     Aqui a barrinha é desligada (o atributo "list" sai do campo, e as opções
+     passam a ser lidas do datalist pelo próprio app) e no lugar abre uma
+     lista de verdade, vertical e rolável, presa embaixo do campo. Continua
+     dando para digitar: o que for digitado filtra a lista.
+
+     Os campos são preparados no momento em que recebem o toque, e não na
+     abertura do app — assim os blocos que o app cria depois (abordado,
+     parte, veículo) já nascem funcionando, sem precisar avisar ninguém. */
+
+  var CB_PAINEL=null,CB_INPUT=null,CB_MARCA=-1;
+
+  function cbNorm(t){
+    return String(t||'').toUpperCase()
+      .replace(/[ÀÁÂÃÄ]/g,'A').replace(/[ÈÉÊË]/g,'E').replace(/[ÌÍÎÏ]/g,'I')
+      .replace(/[ÒÓÔÕÖ]/g,'O').replace(/[ÙÚÛÜ]/g,'U').replace(/Ç/g,'C');
   }
+
+  function cbOpcoes(inp){
+    var id=inp.getAttribute('data-cb');
+    var dl=id?document.getElementById(id):null;
+    if(!dl)return [];
+    return Array.prototype.map.call(dl.options||[],function(o){return o.value||o.textContent||''})
+      .filter(function(x){return x});
+  }
+
+  function cbFecha(){
+    if(CB_PAINEL){CB_PAINEL.style.display='none';CB_PAINEL.innerHTML=''}
+    CB_INPUT=null;CB_MARCA=-1;
+  }
+
+  function cbPainel(){
+    if(CB_PAINEL)return CB_PAINEL;
+    CB_PAINEL=document.createElement('div');
+    CB_PAINEL.className='cb-lista';
+    CB_PAINEL.style.display='none';
+    document.body.appendChild(CB_PAINEL);
+    /* toque na opção: usa mousedown para chegar antes do blur do campo */
+    CB_PAINEL.addEventListener('mousedown',function(e){
+      var it=e.target.closest?e.target.closest('.cb-item'):null;
+      if(!it||!CB_INPUT)return;
+      e.preventDefault();
+      cbEscolhe(it.getAttribute('data-v'));
+    });
+    return CB_PAINEL;
+  }
+
+  function cbEscolhe(val){
+    var inp=CB_INPUT;
+    if(!inp)return;
+    inp.value=val;
+    cbFecha();
+    /* dispara os eventos de sempre para que build(), natMuda(), dpAuto() e o
+       salvamento automático rodem igual ao que rodavam na digitação */
+    ['input','change'].forEach(function(ev){
+      try{inp.dispatchEvent(new Event(ev,{bubbles:true}))}catch(e){
+        var x=document.createEvent('Event');x.initEvent(ev,true,true);inp.dispatchEvent(x);
+      }
+    });
+    try{inp.focus()}catch(e){}
+  }
+
+  function cbPosiciona(inp){
+    var p=cbPainel(),r=inp.getBoundingClientRect();
+    var sx=window.pageXOffset||document.documentElement.scrollLeft||0;
+    var sy=window.pageYOffset||document.documentElement.scrollTop||0;
+    var abaixo=window.innerHeight-r.bottom;
+    var alt=Math.max(140,Math.min(280,abaixo-12));
+    p.style.left=(r.left+sx)+'px';
+    p.style.width=r.width+'px';
+    /* pouco espaço embaixo por causa do teclado: abre para cima */
+    if(abaixo<170&&r.top>abaixo){
+      alt=Math.max(140,Math.min(280,r.top-12));
+      p.style.top=(r.top+sy-alt-4)+'px';
+    }else{
+      p.style.top=(r.bottom+sy+4)+'px';
+    }
+    p.style.maxHeight=alt+'px';
+  }
+
+  function cbAbre(inp){
+    CB_INPUT=inp;CB_MARCA=-1;
+    var todas=cbOpcoes(inp);
+    if(!todas.length){cbFecha();return}
+    var q=cbNorm(inp.value).trim();
+    var lista=q?todas.filter(function(o){return cbNorm(o).indexOf(q)>=0}):todas;
+    /* nada bate com o que foi digitado: mostra tudo, para não parecer travado */
+    if(!lista.length)lista=todas;
+    var p=cbPainel();
+    p.innerHTML=lista.slice(0,300).map(function(o){
+      return '<div class="cb-item" data-v="'+esc(o).replace(/"/g,'&quot;')+'">'+esc(o)+'</div>';
+    }).join('')+(lista.length>300?'<div class="cb-mais">Continue digitando para afinar a busca…</div>':'');
+    p.style.display='block';
+    cbPosiciona(inp);
+    p.scrollTop=0;
+  }
+
+  /* prepara o campo no primeiro toque e desliga a barrinha do teclado */
+  function cbPrepara(inp){
+    var id=inp.getAttribute('list');
+    if(id){inp.setAttribute('data-cb',id);inp.removeAttribute('list');inp.setAttribute('autocomplete','off')}
+    return inp.hasAttribute('data-cb');
+  }
+
+  document.addEventListener('focusin',function(e){
+    var t=e.target;
+    if(!t||!t.matches)return;
+    if(!t.matches('input[list],input[data-cb]')){if(CB_INPUT&&t!==CB_INPUT)cbFecha();return}
+    if(cbPrepara(t))cbAbre(t);
+  },true);
+
+  document.addEventListener('input',function(e){
+    if(CB_INPUT&&e.target===CB_INPUT)cbAbre(CB_INPUT);
+  },true);
+
+  document.addEventListener('keydown',function(e){
+    if(!CB_INPUT||!CB_PAINEL||CB_PAINEL.style.display==='none')return;
+    var itens=CB_PAINEL.querySelectorAll('.cb-item');
+    if(e.key==='Escape'){cbFecha();return}
+    if(e.key==='Enter'){
+      if(CB_MARCA>=0&&itens[CB_MARCA]){e.preventDefault();cbEscolhe(itens[CB_MARCA].getAttribute('data-v'))}
+      else cbFecha();
+      return;
+    }
+    if(e.key!=='ArrowDown'&&e.key!=='ArrowUp')return;
+    e.preventDefault();
+    CB_MARCA+=(e.key==='ArrowDown'?1:-1);
+    if(CB_MARCA<0)CB_MARCA=itens.length-1;
+    if(CB_MARCA>=itens.length)CB_MARCA=0;
+    Array.prototype.forEach.call(itens,function(it,i){it.classList.toggle('sel',i===CB_MARCA)});
+    if(itens[CB_MARCA])itens[CB_MARCA].scrollIntoView({block:'nearest'});
+  },true);
+
+  document.addEventListener('mousedown',function(e){
+    if(!CB_INPUT)return;
+    if(e.target===CB_INPUT)return;
+    if(CB_PAINEL&&CB_PAINEL.contains(e.target))return;
+    cbFecha();
+  },true);
+
+  window.addEventListener('scroll',function(){if(CB_INPUT)cbPosiciona(CB_INPUT)},true);
+  window.addEventListener('resize',function(){if(CB_INPUT)cbPosiciona(CB_INPUT)});
+
 
   /* ---- init ---- */
   window.__sw={estado:'não tentado',erro:''};
