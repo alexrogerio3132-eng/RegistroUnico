@@ -347,7 +347,7 @@
 
 <header><div class="bar">
   <div class="shield">GCM</div>
-  <div><h1>Registro Único</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v70 · 26/09 ENC sem rótulo e RF com ".,"</span></p></div>
+  <div><h1>Registro Único</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v71 · 14/10 RF com barra "/"</span></p></div>
   <button class="app-btn" id="app_btn" onclick="appClick()" title="Instalar o aplicativo no celular"><span class="dot"></span><span class="lbl">App</span></button>
 </div></header>
 
@@ -3134,6 +3134,9 @@
     t=t.replace(/\b([123])\s*[o°ºª](?![A-Za-zÀ-Ý0-9])/g,'$1º');
     t=t.replace(/\bqop\b/gi,'10h');
     t=t.replace(/(\d{3}[.\s]\d{3}[.\s]\d)\s*\/\s*(\d{2})\b/g,'$1$2');
+    /* barra intrusa entre o 1º bloco e o resto do RF: "916./741.200" -> "916.741.200".
+       Só quando sobram exatamente os 9 dígitos do RF; nenhum dígito é inventado. */
+    t=t.replace(/(\d{3})\s?[.,]?\s?\/\s?[.,]?\s?(\d{3}[.,]\d{3})(?!\d)/g,'$1.$2');
     /* Letra lida no lugar do 1º dígito do RF: "G12,345.600" -> "912.345.600".
        Só troca quando o resto do token inteiro é número — assim "SI 6419" e
        "CE 9901" (prefixo/distintivo) não são tocados. */
@@ -3403,6 +3406,11 @@
     /* A coluna casada por padrão vale mais que o palpite posicional. */
     if(col.func)r.func=col.func;
     if(col.rf)r.rf=col.rf;
+    /* RF com um dígito trocado por barra: "927.646./00" (o 7 virou "/").
+       Não dá para adivinhar o dígito, então o RF fica vazio, mas a linha é
+       marcada: o integrante não é descartado e o RF é relido depois só com
+       números (escRepescaRF). */
+    if(!r.rf&&/\b\d{3}[.,\s]\d{3}[.,\s]?[\/|\\]\d{2}\b/.test(todo))r._rfQuebrado=true;
     if(col.pref)r.pref=col.pref;
     if(col.turno)r.turno=col.turno;
     if(col.nome&&(!r.nome||!escNomeOk(r.nome))){
@@ -3551,7 +3559,7 @@
          ("CU URLS", "C 1 A FT KT TP", "SS", "CE E E") sempre entram sem
          número — era daí que vinham as guarnições fantasma. O RF de nove
          dígitos é a coisa mais confiável da folha; quem não tem, não passa. */
-      if(estrito&&!r.rf)return;
+      if(estrito&&!r.rf&&!(r._rfQuebrado&&r.func&&escNomeOk(r.nome)))return;
 
       if(!r.posto&&postoPend){r.posto=postoPend}
       postoPend='';
