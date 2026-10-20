@@ -23,7 +23,7 @@
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;padding:0}
   body{background:var(--bg);color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-    font-size:16px;line-height:1.45;padding-bottom:78px}
+    font-size:16px;line-height:1.45;padding-bottom:24px}
   .wrap{max-width:760px;margin:0 auto;padding:0 14px}
   header{padding:14px 14px 10px;border-bottom:1px solid var(--line)}
   header .bar{display:flex;align-items:center;gap:10px;max-width:760px;margin:0 auto}
@@ -93,6 +93,11 @@
   .hist-acao{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap}
   .hist-acao button{flex:1 1 auto;font-size:13px;padding:8px 10px}
   .hist-msg{font-size:12px;margin-top:6px;line-height:1.5}
+  /* aba Links */
+  .lk{display:block;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:11px 13px;margin-bottom:8px;text-decoration:none;color:var(--ink)}
+  .lk:active,.lk:hover{border-color:var(--accent);background:var(--accent-dim)}
+  .lk b{display:block;font-size:14.5px;color:var(--accent)}
+  .lk span{display:block;font-size:12px;color:var(--muted);margin-top:2px}
   .bo-imp{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px;background:var(--bg)}
   .bo-status{font-size:12.5px;margin-top:8px;line-height:1.5;color:var(--muted)}
   .bo-result{font-size:12.5px;margin-top:8px;line-height:1.6}
@@ -347,7 +352,7 @@
 
 <header><div class="bar">
   <div class="shield">GCM</div>
-  <div><h1>Registro Único</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v71 · 14/10 RF com barra "/"</span></p></div>
+  <div><h1>Registro Único</h1><p>ROMU · dite com o 🎤 do teclado do celular <span style="opacity:.55">· v75 · 20/10 sem PIN</span></p></div>
   <button class="app-btn" id="app_btn" onclick="appClick()" title="Instalar o aplicativo no celular"><span class="dot"></span><span class="lbl">App</span></button>
 </div></header>
 
@@ -372,6 +377,7 @@
   <button class="tabbtn" data-p="ocorr" onclick="tab('ocorr')">Relatório de Ocorrência</button>
   <button class="tabbtn" data-p="rdp" onclick="tab('rdp')">RDP</button>
   <button class="tabbtn" data-p="oper" onclick="tab('oper')">Operações</button>
+  <button class="tabbtn" data-p="links" onclick="tab('links')">Links</button>
   <button class="tabbtn" data-p="saidas" onclick="tab('saidas')">Saídas</button>
   <button class="tabbtn" data-p="stat" onclick="tab('stat');renderStats()">Estatística</button>
 </div>
@@ -705,6 +711,7 @@
 
     <div id="conc_oc_result"></div>
     <button class="concluir-btn" onclick="concluirOcorrencia()">✓ Concluir ocorrência</button>
+    <button class="copy-btn" style="margin:0 0 22px" onclick="savePDF()">📄 Gerar PDF do R.O.</button>
     <section><div class="sec-body">
       <div class="hint">O que você preenche aqui fica gravado neste aparelho e volta ao abrir o app. Só sai quando você mandar apagar.</div>
       <button class="btn-add" style="margin-top:10px" onclick="ocLimpar()">🗑️ Limpar Relatório de Ocorrência</button>
@@ -712,6 +719,52 @@
   </div>
 
   <!-- ===== SAÍDAS ===== -->
+
+  <!-- ===== LINKS (agregador GCM IOPE, linktr.ee/9123iope) ===== -->
+  <div class="tabpane" id="tab_links">
+    <section><div class="sec-body" style="padding-top:14px">
+      <input type="search" id="lk_busca" placeholder="Procurar link…" oninput="lkFiltra(this.value)" autocomplete="off">
+      <div class="hint" style="margin-top:6px">Links do agregador GCM IOPE. Abrem fora do app; logins e senhas são feitos no próprio site.</div>
+    </div></section>
+    <section class="lk-sec"><div class="sec-head"><h2>🔎 Consultas</h2></div><div class="sec-body">
+      <a class="lk" href="https://agent.smartsampa.sentinelx.com.br/app-agent/cortex-finder" target="_blank" rel="noopener noreferrer"><b>Sentinel X</b><span>SmartSampa — consulta de pessoas e veículos</span></a>
+      <a class="lk" href="https://portalbnmp.cnj.jus.br/#/captcha/" target="_blank" rel="noopener noreferrer"><b>Portal BNMP</b><span>Mandados de prisão (CNJ)</span></a>
+      <a class="lk" href="https://esaj.tjsp.jus.br/cpopg/open.do" target="_blank" rel="noopener noreferrer"><b>e-SAJ</b><span>Consulta de processos do TJSP</span></a>
+      <a class="lk" href="https://www.consultaaparelhoimpedido.com.br/public-web/welcome" target="_blank" rel="noopener noreferrer"><b>Aparelho impedido</b><span>Celular com bloqueio por roubo/furto</span></a>
+      <a class="lk" href="https://www.ssp.sp.gov.br/consultabicicleta" target="_blank" rel="noopener noreferrer"><b>Bicicleta SSP</b><span>Consulta de bicicleta roubada/furtada</span></a>
+      <a class="lk" href="https://mind-7.org/acesso/" target="_blank" rel="noopener noreferrer"><b>Mind-7</b><span>Consulta de dados</span></a>
+      <a class="lk" href="https://www.jusbrasil.com.br/" target="_blank" rel="noopener noreferrer"><b>Jusbrasil</b><span>Pesquisa jurídica</span></a>
+      <a class="lk" href="https://portal.sap.sp.gov.br/formularios/paradeiro" target="_blank" rel="noopener noreferrer"><b>Paradeiro SAP</b><span>Onde o preso está custodiado</span></a>
+      <a class="lk" href="http://cna.oab.org.br/" target="_blank" rel="noopener noreferrer"><b>Advogados (OAB)</b><span>Cadastro Nacional dos Advogados</span></a>
+    </div></section>
+    <section class="lk-sec"><div class="sec-head"><h2>🧰 Ferramentas</h2></div><div class="sec-body">
+      <a class="lk" href="https://goo.gl/maps/8vq5QzYWJXTDgNFo9" target="_blank" rel="noopener noreferrer"><b>Inspetorias Regionais</b><span>Mapa da circunscrição</span></a>
+      <a class="lk" href="https://goo.gl/maps/GL5NmvvuatpZ8gis9?g_st=ac" target="_blank" rel="noopener noreferrer"><b>Delegacias</b><span>Mapa da circunscrição</span></a>
+      <a class="lk" href="https://drive.google.com/drive/folders/14hnbWmo7Q7FVxUmXwqACFKe_o55um7Q2" target="_blank" rel="noopener noreferrer"><b>Códigos</b><span>Pasta no Google Drive</span></a>
+      <a class="lk" href="https://drive.google.com/file/d/17LZZ7fRjgZGvVqHkMAhzDhjBIW8xFzKQ/view?usp=drivesdk" target="_blank" rel="noopener noreferrer"><b>Quadro de infrações GCM</b><span>PDF atualizado</span></a>
+      <a class="lk" href="https://drive.google.com/drive/folders/12hX-ogO2HT_Decns0d76AH2bWkDDriAQ" target="_blank" rel="noopener noreferrer"><b>Apps</b><span>Pasta no Google Drive</span></a>
+      <a class="lk" href="https://drive.google.com/drive/folders/1MYC1m10-oR_t6ITjWXIy4zBIq28fKvKg" target="_blank" rel="noopener noreferrer"><b>POP&#x27;s</b><span>Procedimentos operacionais — pasta no Drive</span></a>
+    </div></section>
+    <section class="lk-sec"><div class="sec-head"><h2>🛡️ Serviço</h2></div><div class="sec-body">
+      <a class="lk" href="http://www.gcmdeac.prefeitura.sp.gov.br/login_web/" target="_blank" rel="noopener noreferrer"><b>DEAC</b><span>Sistema da GCM</span></a>
+      <a class="lk" href="https://www.areaprivada.prefeitura.sp.gov.br/PortalPMSP/PortalPMSP/Portal/PMSPprt005.tp" target="_blank" rel="noopener noreferrer"><b>Holerite</b><span>Portal da Prefeitura</span></a>
+    </div></section>
+    <section class="lk-sec"><div class="sec-head"><h2>📁 Vida funcional</h2></div><div class="sec-body">
+      <a class="lk" href="https://controladoriageralbens.prefeitura.sp.gov.br/PaginasPublicas/Login.aspx" target="_blank" rel="noopener noreferrer"><b>Declaração de Bens</b><span>Controladoria Geral do Município</span></a>
+      <a class="lk" href="https://www.declaracaofamilia.iprem.prefeitura.sp.gov.br/Login/index" target="_blank" rel="noopener noreferrer"><b>Declaração de Família</b><span>IPREM</span></a>
+      <a class="lk" href="https://portaleletronico.hspm.sp.gov.br/portaleletronico/MdlAutorizacao/Login" target="_blank" rel="noopener noreferrer"><b>HSPM</b><span>Portal eletrônico do Hospital do Servidor</span></a>
+    </div></section>
+    <section class="lk-sec"><div class="sec-head"><h2>📘 Normas internas</h2></div><div class="sec-body">
+      <a class="lk" href="https://diariooficial.prefeitura.sp.gov.br/md_epubli_controlador.php?acao=inicio" target="_blank" rel="noopener noreferrer"><b>Diário Oficial SP</b><span>Diário Oficial da Cidade</span></a>
+      <a class="lk" href="https://www.sindguardas-sp.org.br/site/Pagina/21/Legisla%C3%A7%C3%A3o" target="_blank" rel="noopener noreferrer"><b>Legislação</b><span>Coletânea do Sindguardas</span></a>
+      <a class="lk" href="https://drive.google.com/file/d/17UEeuPKK0YyYE7PeAbu5wX0el0P6Lwp8/view?usp=drivesdk" target="_blank" rel="noopener noreferrer"><b>Apostila de Patrulhamento Tático</b><span>IOPE — PDF</span></a>
+      <a class="lk" href="https://drive.google.com/file/d/17TReNvNVDGkq9f7v9Xv6MfmpQSPNnfUJ/view?usp=drivesdk" target="_blank" rel="noopener noreferrer"><b>NGA reformulada</b><span>PDF</span></a>
+    </div></section>
+    <section class="lk-sec"><div class="sec-head"><h2>💬 Feedback</h2></div><div class="sec-body">
+      <a class="lk" href="https://api.whatsapp.com/send?phone=5511933504995" target="_blank" rel="noopener noreferrer"><b>Reportar erros ou sugestões</b><span>WhatsApp do responsável pelo app</span></a>
+    </div></section>
+    <div class="hint" id="lk_nada" style="display:none;margin:14px 2px">Nenhum link encontrado.</div>
+  </div>
 
   <!-- ===== OPERAÇÕES — RELATÓRIO DE OPERAÇÃO (Rel. OP.) ===== -->
   <!-- ===== RDP (espelho do GCM Mobile) ===== -->
@@ -897,9 +950,6 @@
   </p>
 </div>
 
-<div class="footbar"><div>
-  <button class="btn-pdf" onclick="savePDF()">R.O</button>
-</div></div>
 
 
 <div id="esc_modal" class="esc-modal">
@@ -919,6 +969,106 @@
 
 <div id="print-area"></div>
 
+<style>
+  /* ---- recuperação dos dados cifrados pelo PIN (v72–v74) ---- */
+  .pin-gate{position:fixed;inset:0;z-index:20000;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
+  .pin-gate[hidden]{display:none}
+  .pin-box{width:100%;max-width:340px;text-align:center}
+  .pin-box .shield{margin:0 auto 14px}
+  .pin-t{font-size:18px;margin:0 0 6px;color:var(--ink)}
+  .pin-s{font-size:13px;color:var(--muted);margin:0 0 18px;line-height:1.5}
+  .pin-box input{text-align:center;font-size:22px;letter-spacing:.35em;margin-bottom:10px}
+  .pin-ok{width:100%;background:var(--accent);border:none;color:#fff;font:inherit;font-size:16px;font-weight:700;padding:14px;border-radius:11px;cursor:pointer;margin-top:4px}
+  .pin-msg{font-size:13px;min-height:18px;margin-top:12px;line-height:1.5}
+  .pin-esq{background:none;border:none;color:var(--faint);font:inherit;font-size:12.5px;text-decoration:underline;margin-top:18px;cursor:pointer}
+</style>
+<div class="pin-gate" id="pin_gate" hidden>
+  <div class="pin-box">
+    <div class="shield">GCM</div>
+    <h2 class="pin-t">O PIN foi retirado do app</h2>
+    <p class="pin-s">Digite o seu PIN uma última vez para liberar os dados guardados neste aparelho. Depois disso ele não será mais pedido.</p>
+    <input type="password" id="pin_a" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="PIN">
+    <button type="button" class="pin-ok" id="pin_ok" onclick="SEG_PIN.ok()">Liberar</button>
+    <div class="pin-msg" id="pin_msg"></div>
+    <button type="button" class="pin-esq" onclick="SEG_PIN.esqueci()">Esqueci o PIN</button>
+  </div>
+</div>
+<script>
+/* ============================================================
+   O bloqueio com PIN saiu (pedido do usuário, v75). Este trecho só
+   existe para os aparelhos que chegaram a criar PIN nas v72–v74: lá os
+   dados estão cifrados em "gcm_sec:<chave>". O PIN é pedido UMA vez,
+   os dados voltam ao formato normal e o app nunca mais pede PIN.
+   Aparelho sem PIN criado: nada aparece, o app abre direto.
+   ============================================================ */
+var SEG_PIN=(function(){
+  var CHAVES=['gcm_hist','gcm_ocorr_v1','gcm_rdp_v1','gcm_recent_hist','gcm_equipe'];
+  var META='gcm_pin_meta',PFX='gcm_sec:',INICIOU=false,OCUPADO=false;
+  var te=new TextEncoder(),td=new TextDecoder();
+  function g(k){try{return localStorage.getItem(k)}catch(e){return null}}
+  function s(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+  function r(k){try{localStorage.removeItem(k)}catch(e){}}
+  function $(id){return document.getElementById(id)}
+  function msg(t,cor){var m=$('pin_msg');if(m){m.textContent=t||'';m.style.color=cor||'var(--muted)'}}
+  function ub64(t){var x=atob(t),a=new Uint8Array(x.length);for(var i=0;i<x.length;i++)a[i]=x.charCodeAt(i);return a}
+  function deriva(pin,salt,it){
+    return crypto.subtle.importKey('raw',te.encode(pin),'PBKDF2',false,['deriveKey']).then(function(b){
+      return crypto.subtle.deriveKey({name:'PBKDF2',salt:salt,iterations:it,hash:'SHA-256'},b,
+        {name:'AES-GCM',length:256},false,['decrypt']);
+    });
+  }
+  function decifra(js,key){
+    var o=JSON.parse(js);
+    return crypto.subtle.decrypt({name:'AES-GCM',iv:ub64(o.iv)},key,ub64(o.ct)).then(function(p){return td.decode(p)});
+  }
+  function limpaPin(){r(META);r('gcm_pin_falhas');r('gcm_pin_ate')}
+  function abre(){
+    $('pin_gate').hidden=true;
+    if(INICIOU)return;INICIOU=true;
+    try{window.__appInit&&window.__appInit()}catch(e){console.error(e)}
+    try{window.__rdpInit&&window.__rdpInit()}catch(e){console.error(e)}
+  }
+  function ok(){
+    if(OCUPADO)return;
+    var meta;try{meta=JSON.parse(g(META))}catch(e){meta=null}
+    if(!meta){abre();return}
+    var pin=$('pin_a').value.replace(/\s/g,'');
+    if(!pin){msg('Digite o PIN.','var(--warn)');return}
+    OCUPADO=true;msg('Liberando…');
+    deriva(pin,ub64(meta.salt),meta.it||310000).then(function(key){
+      return decifra(meta.chk,key).then(function(t){if(t!=='gcm-pin-ok')throw 0;return key},function(){throw 0});
+    }).then(function(key){
+      return Promise.all(CHAVES.map(function(k){
+        var js=g(PFX+k);if(!js)return;
+        return decifra(js,key).then(function(v){s(k,v);r(PFX+k)});
+      }));
+    }).then(function(){OCUPADO=false;limpaPin();abre()})
+      .catch(function(e){
+        OCUPADO=false;$('pin_a').value='';
+        msg(e===0?'PIN errado. Tente de novo.':'Erro ao liberar: '+(e&&e.message||e),'var(--warn)');
+      });
+  }
+  function esqueci(){
+    if(!confirm('Sem o PIN não dá para abrir os dados guardados. Apagar o histórico de abordagens, o R.O., o RDP e a equipe deste aparelho e seguir sem PIN?'))return;
+    if(!confirm('Confirma? Isso não tem volta.'))return;
+    CHAVES.forEach(function(k){r(PFX+k)});limpaPin();abre();
+  }
+  function iniciar(){
+    if(g(META)&&window.crypto&&crypto.subtle){
+      $('pin_gate').hidden=false;
+      var a=$('pin_a');
+      a.addEventListener('keydown',function(e){if(e.key==='Enter')ok()});
+      setTimeout(function(){try{a.focus()}catch(e){}},60);
+      return;
+    }
+    abre();
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',iniciar);
+  else setTimeout(iniciar,0);
+  return {ok:ok,esqueci:esqueci};
+})();
+</script>
+
 <script>
   function uid(){return Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36)}
   function v(id){var e=document.getElementById(id);return e?e.value.trim():''}
@@ -928,10 +1078,23 @@
 
   /* ---- abas ---- */
   function tab(p){
-    ['equipe','abord','ocorr','rdp','oper','saidas','stat'].forEach(function(x){
+    ['equipe','abord','ocorr','rdp','oper','links','saidas','stat'].forEach(function(x){
       document.getElementById('tab_'+x).classList.toggle('active',x===p);});
     document.querySelectorAll('.tabbtn').forEach(function(b){b.classList.toggle('active',b.dataset.p===p);});
     window.scrollTo({top:0,behavior:'smooth'});
+  }
+  /* aba Links: filtra pelo nome e pela descrição, sem diferenciar acento */
+  function lkFiltra(q){
+    function n(x){return String(x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+    q=n(q).trim();var achou=0;
+    document.querySelectorAll('#tab_links .lk-sec').forEach(function(sec){
+      var vis=0;
+      sec.querySelectorAll('.lk').forEach(function(a){
+        var ok=!q||n(a.textContent).indexOf(q)>=0;a.style.display=ok?'':'none';if(ok)vis++;
+      });
+      sec.style.display=vis?'':'none';achou+=vis;
+    });
+    var nd=document.getElementById('lk_nada');if(nd)nd.style.display=achou?'none':'block';
   }
   function otab(t){
     /* o painel Sentinel saiu; o guard evita quebrar se algum id faltar */
@@ -6317,9 +6480,12 @@
     },true);
   });
 
+  /* iniciado por SEG_PIN: na hora em aparelho sem PIN; depois da liberação única nos que tinham PIN (v72–v74) */
+  window.__appInit=function(){
   natInit();dpInit();psPreparar();initFotos();eqBadge(null);segAdd('abordado');addParte();renderRecent();renderStats();toggleTipo();gfInit();vtrRender();resetOnLoad();lockAll();build();
   try{ocRestaurar()}catch(e){}
   OC_PRONTO=true;
+  };
 </script>
 
 <style>
@@ -6763,7 +6929,7 @@ var RDP=(function(){
   return {init:init,render:render,abre:abre,add:add,del:del,agora:agora,gps:gps,copia:copia,wa:wa,zera:zera,
           doRO:doRO,doOp:doOp,doHist:doHist,doApre:doApre,doPess:doPess,limpaTudo:limpaTudo,_texto:texto};
 })();
-try{RDP.init()}catch(e){}
+window.__rdpInit=function(){try{RDP.init()}catch(e){}};
 </script>
 
 <script>
